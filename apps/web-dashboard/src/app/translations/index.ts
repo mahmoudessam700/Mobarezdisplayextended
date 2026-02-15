@@ -7,14 +7,14 @@ export const translations = {
     pricing: 'Pricing',
     download: 'Download',
     dashboard: 'Dashboard',
-    
+
     // Hero Section
     heroTitle: 'Extend Your Screen',
     heroSubtitle: 'Across Any Device',
     heroDescription: 'Connect Mac, Windows, Linux, Android, and iOS devices wirelessly or via USB. Simple, fast, and professional.',
     downloadNow: 'Download Now',
     learnMore: 'Learn More',
-    
+
     // Features
     featuresTitle: 'Powerful Features',
     feature1Title: 'Cross-Platform',
@@ -29,7 +29,7 @@ export const translations = {
     feature5Desc: 'Route audio between connected devices',
     feature6Title: 'File Transfer',
     feature6Desc: 'Drag and drop files between devices',
-    
+
     // How It Works
     howItWorksTitle: 'How It Works',
     step1Title: 'Install',
@@ -38,7 +38,7 @@ export const translations = {
     step2Desc: 'Scan and connect via Wi-Fi or USB',
     step3Title: 'Extend',
     step3Desc: 'Start extending or mirroring your screen',
-    
+
     // Pricing
     pricingTitle: 'Simple Pricing',
     free: 'Free',
@@ -51,11 +51,11 @@ export const translations = {
     prioritySupport: 'Priority Support',
     advancedFeatures: 'Advanced Features',
     noWatermark: 'No Watermark',
-    
+
     // CTA Section
     ctaTitle: 'Ready to extend your screen?',
     ctaSubtitle: 'Download Mobarez DisplayExtended today and start working across all your devices seamlessly.',
-    
+
     // Comparison Section
     comparisonTitle: 'Why Choose Mobarez DisplayExtended?',
     comparisonSubtitle: 'See how we compare to other popular screen extension solutions',
@@ -68,16 +68,18 @@ export const translations = {
     fourKSupport: '4K Support',
     lowLatencyMode: 'Low Latency Mode',
     fileTransfer: 'File Transfer',
-    
+
     // Dashboard
     devices: 'Devices',
+    'devices.title': 'Manage Devices',
+    'devices.subtitle': 'Connect and control your remote displays',
     sessions: 'Sessions',
     settings: 'Settings',
     analytics: 'Analytics',
     account: 'Account',
     help: 'Help',
     logout: 'Logout',
-    
+
     // Device Management
     availableDevices: 'Available Devices',
     connectedDevices: 'Connected Devices',
@@ -86,14 +88,14 @@ export const translations = {
     disconnect: 'Disconnect',
     extend: 'Extend',
     mirror: 'Mirror',
-    
+
     // Connection
     resolution: 'Resolution',
     frameRate: 'Frame Rate',
     bitrate: 'Bitrate',
     quality: 'Quality',
     latency: 'Latency',
-    
+
     // Settings
     general: 'General',
     display: 'Display',
@@ -103,20 +105,20 @@ export const translations = {
     appearance: 'Appearance',
     autoConnect: 'Auto Connect',
     startOnBoot: 'Start on Boot',
-    
+
     // Analytics
     performance: 'Performance',
     cpuUsage: 'CPU Usage',
     gpuUsage: 'GPU Usage',
     bandwidth: 'Bandwidth',
     packetLoss: 'Packet Loss',
-    
+
     // Status
     connected: 'Connected',
     disconnected: 'Disconnected',
     connecting: 'Connecting...',
     scanning: 'Scanning...',
-    
+
     // Auth - Login & Register
     welcome: 'Welcome Back',
     signInSubtitle: 'Sign in to your account to continue',
@@ -143,7 +145,7 @@ export const translations = {
     privacyPolicy: 'Privacy Policy',
     bySigningIn: 'By signing in, you agree to our',
     passwordMinLength: 'Must be at least 8 characters',
-    
+
     // Footer
     footerDescription: 'Professional screen extension across all your devices.',
     product: 'Product',
@@ -163,14 +165,14 @@ export const translations = {
     security: 'Security',
     allRightsReserved: 'All rights reserved.',
     madeWithLove: 'Made with ❤️ for Arab',
-    
+
     // 404 Not Found Page
     pageNotFound: 'Page Not Found',
     pageNotFoundDesc: "Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.",
     goHome: 'Go to Homepage',
     lookingForSomething: 'Looking for something?',
     popularPages: 'Here are some popular pages:',
-    
+
     // Common
     save: 'Save',
     cancel: 'Cancel',
@@ -178,7 +180,7 @@ export const translations = {
     reset: 'Reset',
     getStarted: 'Get Started',
     backHome: 'Back to Home',
-    
+
     // Features CTA Section
     allFeaturesIncluded: 'All Features Included',
     everythingYouNeed: 'Everything You Need, All in One Place',
@@ -187,7 +189,7 @@ export const translations = {
     hiddenCosts: 'Hidden Costs',
     possibilities: 'Possibilities',
     included: 'Included',
-    
+
     // About Page
     aboutTitle: 'About Mobarez DisplayExtended',
     aboutSubtitle: "We're on a mission to make screen extension simple, powerful, and accessible to everyone across all devices.",
@@ -223,7 +225,7 @@ export const translations = {
     joinUsDesc: "We're just getting started. Help us build the future of screen extension.",
     joinOurTeam: 'Join Our Team',
     becomePartner: 'Become a Partner',
-    
+
     // Documentation Page
     documentationTitle: 'Documentation',
     documentationSubtitle: 'Everything you need to know about Mobarez DisplayExtended',
@@ -266,7 +268,7 @@ export const translations = {
     needHelpDesc: "Can't find what you're looking for? Our support team is here to help.",
     contactSupport: 'Contact Support',
     joinCommunity: 'Join Community',
-    
+
     // Contact Page
     contactUs: 'Contact Us',
     contactSubtitle: "Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
@@ -304,7 +306,7 @@ export const translations = {
     visitOffice: 'Visit Our Office',
     messageSent: 'Message sent successfully!',
     messageResponse: "We'll get back to you within 24 hours.",
-    
+
     // Download Page
     downloadTitle: 'Download Mobarez DisplayExtended',
     downloadSubtitle: 'Choose your platform and start extending your screen across all your devices',
@@ -328,7 +330,7 @@ export const translations = {
     whatsNew: "What's New",
     whatsNewDesc: 'Check out the latest features and improvements in version 1.0.0',
     releaseNotes: 'Release Notes',
-    
+
     // Blog Page
     blogTitle: 'Blog',
     blogSubtitle: 'Latest news, updates, and insights from the Mobarez DisplayExtended team',
@@ -346,7 +348,7 @@ export const translations = {
     tipsCategory: 'Tips',
     comparisonCategory: 'Comparison',
     minRead: 'min read',
-    
+
     // Blog Posts
     blogPost1Title: 'Introducing Mobarez DisplayExtended 1.0: The Future of Screen Extension',
     blogPost1Excerpt: 'After months of development and testing, we\'re excited to announce the official release of Mobarez DisplayExtended 1.0. Learn about the new features and improvements.',
@@ -362,7 +364,7 @@ export const translations = {
     blogPost6Excerpt: 'Best practices for getting the most out of Mobarez DisplayExtended in remote work scenarios.',
     blogPost7Title: 'Behind the Scenes: Building a Cross-Platform App',
     blogPost7Excerpt: 'The challenges and solutions in creating an app that works seamlessly across all platforms.',
-    
+
     // Careers Page
     careersTitle: 'Careers',
     careersSubtitle: 'Join our team and help shape the future of screen extension technology',
@@ -370,7 +372,7 @@ export const translations = {
     openPositions: 'Open Positions',
     viewPosition: 'View Position',
     noPositions: 'No open positions at the moment. Check back soon!',
-    
+
     // Community Page
     communityTitle: 'Community',
     communitySubtitle: 'Join thousands of users sharing tips, tricks, and creative setups',
@@ -400,19 +402,19 @@ export const translations = {
     questionCategory: 'Question',
     guideCategory: 'Guide',
     bugCategory: 'Bug',
-    
+
     // Privacy Page
     privacyPolicyTitle: 'Privacy Policy',
     lastUpdated: 'Last updated',
-    
+
     // Terms Page
     termsTitle: 'Terms of Service',
     termsLastUpdated: 'Last updated',
-    
+
     // Press Kit Page
     pressKitTitle: 'Press Kit',
     pressKitSubtitle: 'Download logos, screenshots, and other media assets',
-    
+
     // Help Page
     findAnswersSupport: 'Find answers and get support',
     communityForum: 'Community Forum',
@@ -447,14 +449,14 @@ export const translations = {
     pricing: 'الأسعار',
     download: 'تنزيل',
     dashboard: 'لوحة التحكم',
-    
+
     // Hero Section
     heroTitle: 'وسّع شاشتك',
     heroSubtitle: 'عبر أي جهاز',
     heroDescription: 'اربط أجهزة Mac و Windows و Linux و Android و iOS لاسلكياً أو عبر USB. بسيط، سريع، واحترافي.',
     downloadNow: 'نزّل الآن',
     learnMore: 'اعرف المزيد',
-    
+
     // Features
     featuresTitle: 'مميزات قوية',
     feature1Title: 'متعدد المنصات',
@@ -469,7 +471,7 @@ export const translations = {
     feature5Desc: 'نقل الصوت بين الأجهزة المتصلة',
     feature6Title: 'نقل الملفات',
     feature6Desc: 'قم بسحب وإفلات الملفات بين الأجهزة',
-    
+
     // How It Works
     howItWorksTitle: 'كيف يعمل',
     step1Title: 'التثبيت',
@@ -478,7 +480,7 @@ export const translations = {
     step2Desc: 'ابحث عن الأجهزة واتصل عبر Wi-Fi أو USB',
     step3Title: 'التوسيع',
     step3Desc: 'ابدأ بتوسيع أو نسخ شاشتك',
-    
+
     // Pricing
     pricingTitle: 'أسعار بسيطة',
     free: 'مجاني',
@@ -491,11 +493,11 @@ export const translations = {
     prioritySupport: 'دعم فني ذو أولوية',
     advancedFeatures: 'مميزات متقدمة',
     noWatermark: 'بدون علامة مائية',
-    
+
     // CTA Section
     ctaTitle: 'هل أنت جاهز لتوسيع شاشتك؟',
     ctaSubtitle: 'نزّل Mobarez DisplayExtended اليوم وابدأ العمل عبر جميع أجهزتك بسلاسة.',
-    
+
     // Comparison Section
     comparisonTitle: 'لماذا تختار Mobarez DisplayExtended؟',
     comparisonSubtitle: 'شاهد كيف نتفوق على الحلول الشائعة الأخرى لتوسيع الشاشة',
@@ -508,16 +510,18 @@ export const translations = {
     fourKSupport: 'دعم دقة 4K',
     lowLatencyMode: 'وضع زمن الاستجابة المنخفض',
     fileTransfer: 'نقل الملفات',
-    
+
     // Dashboard
     devices: 'الأجهزة',
+    'devices.title': 'إدارة الأجهزة',
+    'devices.subtitle': 'اتصل وتحكم في شاشاتك عن بعد',
     sessions: 'الجلسات',
     settings: 'الإعدادات',
     analytics: 'التحليلات',
     account: 'الحساب',
     help: 'المساعدة',
     logout: 'تسجيل الخروج',
-    
+
     // Device Management
     availableDevices: 'الأجهزة المتاحة',
     connectedDevices: 'الأجهزة المتصلة',
@@ -526,14 +530,14 @@ export const translations = {
     disconnect: 'قطع الاتصال',
     extend: 'توسيع',
     mirror: 'نسخ',
-    
+
     // Connection
     resolution: 'الدقة',
     frameRate: 'معدل الإطارات',
     bitrate: 'معدل البت',
     quality: 'الجودة',
     latency: 'زمن الاستجابة',
-    
+
     // Settings
     general: 'عام',
     display: 'العرض',
@@ -543,20 +547,20 @@ export const translations = {
     appearance: 'المظهر',
     autoConnect: 'اتصال تلقائي',
     startOnBoot: 'البدء عند تشغيل النظام',
-    
+
     // Analytics
     performance: 'الأداء',
     cpuUsage: 'استخدام المعالج',
     gpuUsage: 'استخدام كرت الشاشة',
     bandwidth: 'عرض النطاق الترددي',
     packetLoss: 'فقدان الحزم',
-    
+
     // Status
     connected: 'متصل',
     disconnected: 'غير متصل',
     connecting: 'جارٍ الاتصال...',
     scanning: 'جارٍ البحث...',
-    
+
     // Auth - Login & Register
     welcome: 'مرحباً بعودتك',
     signInSubtitle: 'سجّل الدخول إلى حسابك للمتابعة',
@@ -583,7 +587,7 @@ export const translations = {
     privacyPolicy: 'سياسة الخصوصية',
     bySigningIn: 'بتسجيل الدخول، فإنك توافق على',
     passwordMinLength: 'يجب أن تتكون من 8 أحرف على الأقل',
-    
+
     // Footer
     footerDescription: 'توسيع احترافي للشاشة عبر جميع أجهزتك.',
     product: 'المنتج',
@@ -603,14 +607,14 @@ export const translations = {
     security: 'الأمان',
     allRightsReserved: 'جميع الحقوق محفوظة.',
     madeWithLove: 'صُنع بـ ❤️ للعرب',
-    
+
     // 404 Not Found Page
     pageNotFound: 'الصفحة غير موجودة',
     pageNotFoundDesc: 'عذراً، لم نتمكن من العثور على الصفحة التي تبحث عنها. ربما تم نقلها أو لم تعد موجودة.',
     goHome: 'العودة إلى الصفحة الرئيسية',
     lookingForSomething: 'هل تبحث عن شيء ما؟',
     popularPages: 'إليك بعض الصفحات الشائعة:',
-    
+
     // Common
     save: 'حفظ',
     cancel: 'إلغاء',
@@ -618,7 +622,7 @@ export const translations = {
     reset: 'إعادة تعيين',
     getStarted: 'ابدأ الآن',
     backHome: 'العودة إلى الرئيسية',
-    
+
     // Features CTA Section
     allFeaturesIncluded: 'جميع المميزات متضمنة',
     everythingYouNeed: 'كل ما تحتاجه في مكان واحد',
@@ -627,7 +631,7 @@ export const translations = {
     hiddenCosts: 'تكاليف مخفية',
     possibilities: 'إمكانيات',
     included: 'متضمن',
-    
+
     // About Page
     aboutTitle: 'عن Mobarez DisplayExtended',
     aboutSubtitle: 'مهمتنا هي جعل توسيع الشاشة بسيطاً وقوياً ومتاحاً للجميع عبر جميع الأجهزة.',
@@ -663,7 +667,7 @@ export const translations = {
     joinUsDesc: 'لقد بدأنا للتو. ساعدنا في بناء مستقبل توسيع الشاشة.',
     joinOurTeam: 'انضم لفريقنا',
     becomePartner: 'كن شريكاً',
-    
+
     // Documentation Page
     documentationTitle: 'التوثيق',
     documentationSubtitle: 'كل ما تحتاج معرفته عن Mobarez DisplayExtended',
@@ -706,7 +710,7 @@ export const translations = {
     needHelpDesc: 'ألم تجد ما تبحث عنه؟ فريق الدعم لدينا هنا للمساعدة.',
     contactSupport: 'اتصل بالدعم',
     joinCommunity: 'انضم للمجتمع',
-    
+
     // Contact Page
     contactUs: 'اتصل بنا',
     contactSubtitle: 'هل لديك أسئلة؟ نحب أن نسمع منك. أرسل لنا رسالة وسنرد في أقرب وقت ممكن.',
@@ -744,7 +748,7 @@ export const translations = {
     visitOffice: 'قم بزيارة مكتبنا',
     messageSent: 'تم إرسال الرسالة بنجاح!',
     messageResponse: 'سنعاود الاتصال بك خلال 24 ساعة.',
-    
+
     // Download Page
     downloadTitle: 'نزّل Mobarez DisplayExtended',
     downloadSubtitle: 'اختر منصتك وابدأ في توسيع شاشتك عبر جميع أجهزتك',
@@ -768,7 +772,7 @@ export const translations = {
     whatsNew: 'الجديد',
     whatsNewDesc: 'تحقق من أحدث المميزات والتحسينات في الإصدار 1.0.0',
     releaseNotes: 'ملاحظات الإصدار',
-    
+
     // Blog Page
     blogTitle: 'المدونة',
     blogSubtitle: 'آخر الأخبار والتحديثات والرؤى من فريق Mobarez DisplayExtended',
@@ -786,7 +790,7 @@ export const translations = {
     tipsCategory: 'نصائح',
     comparisonCategory: 'مقارنة',
     minRead: 'دقيقة قراءة',
-    
+
     // Blog Posts
     blogPost1Title: 'تقديم Mobarez DisplayExtended 1.0: مستقبل توسيع الشاشة',
     blogPost1Excerpt: 'بعد أشهر من التطوير والاختبار، يسعدنا الإعلان عن الإصدار الرسمي لـ Mobarez DisplayExtended 1.0. تعرف على المميزات والتحسينات الجديدة.',
@@ -802,7 +806,7 @@ export const translations = {
     blogPost6Excerpt: 'أفضل الممارسات للحصول على أقصى استفادة من Mobarez DisplayExtended في سيناريوهات العمل عن بعد.',
     blogPost7Title: 'خلف الكواليس: بناء تطبيق متعدد المنصات',
     blogPost7Excerpt: 'التحديات والحلول في إنشاء تطبيق يعمل بسلاسة عبر جميع المنصات.',
-    
+
     // Careers Page
     careersTitle: 'الوظائف',
     careersSubtitle: 'انضم إلى فريقنا وساعد في تشكيل مستقبل تقنية توسيع الشاشة',
@@ -810,7 +814,7 @@ export const translations = {
     openPositions: 'الوظائف المتاحة',
     viewPosition: 'عرض الوظيفة',
     noPositions: 'لا توجد وظائف متاحة في الوقت الحالي. تحقق مرة أخرى قريباً!',
-    
+
     // Community Page
     communityTitle: 'المجتمع',
     communitySubtitle: 'انضم إلى آلاف المستخدمين الذين يشاركون النصائح والحيل والإعدادات الإبداعية',
@@ -840,19 +844,19 @@ export const translations = {
     questionCategory: 'سؤال',
     guideCategory: 'دليل',
     bugCategory: 'خطأ',
-    
+
     // Privacy Page
     privacyPolicyTitle: 'سياسة الخصوصية',
     lastUpdated: 'آخر تحديث',
-    
+
     // Terms Page
     termsTitle: 'شروط الخدمة',
     termsLastUpdated: 'آخر تحديث',
-    
+
     // Press Kit Page
     pressKitTitle: 'الملف الصحفي',
     pressKitSubtitle: 'نزّل الشعارات ولقطات الشاشة وأصول الوسائط الأخرى',
-    
+
     // Help Page
     findAnswersSupport: 'اعثر على إجابات واحصل على الدعم',
     communityForum: 'منتدى المجتمع',

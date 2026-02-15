@@ -7,9 +7,12 @@ interface StreamPlayerProps {
     stream: MediaStream | null;
     deviceName: string;
     onClose?: () => void;
+    onMouseMove?: (e: React.MouseEvent<HTMLVideoElement>) => void;
+    onMouseDown?: (e: React.MouseEvent<HTMLVideoElement>) => void;
+    onMouseUp?: (e: React.MouseEvent<HTMLVideoElement>) => void;
 }
 
-export function StreamPlayer({ stream, deviceName, onClose }: StreamPlayerProps) {
+export function StreamPlayer({ stream, deviceName, onClose, onMouseMove, onMouseDown, onMouseUp }: StreamPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
@@ -34,6 +37,9 @@ export function StreamPlayer({ stream, deviceName, onClose }: StreamPlayerProps)
                 }}
                 onPlay={() => console.log('[STREAM] Video started playing')}
                 onError={(e) => console.error('[STREAM] Video error:', e)}
+                onMouseMove={onMouseMove}
+                onMouseDown={onMouseDown}
+                onMouseUp={onMouseUp}
             />
 
             {/* Overlay Controls */}

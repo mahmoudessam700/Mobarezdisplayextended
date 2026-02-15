@@ -2,18 +2,50 @@ import { useState, useEffect } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { StreamPlayer } from '../../components/StreamPlayer';
-import { Monitor, Wifi, Maximize2, RefreshCw } from 'lucide-react';
+import { Monitor, Wifi, Maximize2, RefreshCw, Settings } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
 
 export function DisplayPage() {
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [pairingCode, setPairingCode] = useState<string | null>(null);
     const [socketId, setSocketId] = useState<string | null>(null);
+    const [remoteControlEnabled, setRemoteControlEnabled] = useState(false);
     const { socket, connected } = useSocket();
-    const { isStreaming } = useWebRTC({
+    const { isStreaming, sendInputData } = useWebRTC({
         socket,
         onRemoteStream: (stream) => setRemoteStream(stream)
     });
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLVideoElement>) => {
+        if (!remoteControlEnabled || !sendInputData) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        sendInputData({ type: 'mousemove', x, y });
+    };
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLVideoElement>) => {
+        if (!remoteControlEnabled || !sendInputData) return;
+        sendInputData({ type: 'mousedown', button: e.button });
+    };
+
+    const handleMouseUp = (e: React.MouseEvent<HTMLVideoElement>) => {
+        if (!remoteControlEnabled || !sendInputData) return;
+        sendInputData({ type: 'mouseup', button: e.button });
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!remoteControlEnabled || !sendInputData) return;
+        sendInputData({
+            type: 'keydown', key: e.key, code: e.code, modifiers: {
+                ctrl: e.ctrlKey,
+                shift: e.shiftKey,
+                alt: e.altKey,
+                meta: e.metaKey
+            }
+        });
+    };
 
     useEffect(() => {
         if (connected && socket) {
@@ -45,7 +77,11 @@ export function DisplayPage() {
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div
+            className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 outline-none"
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+        >
             {!remoteStream ? (
                 <div className="text-center space-y-6 max-w-md animate-in fade-in zoom-in duration-500">
                     <div className="relative inline-block">
@@ -122,12 +158,27 @@ export function DisplayPage() {
                     </div>
                 </div>
             ) : (
-                <div className="w-full h-full animate-in fade-in duration-1000">
-                    <StreamPlayer
-                        stream={remoteStream}
-                        deviceName="Remote Host"
-                        onClose={() => setRemoteStream(null)}
-                    />
+                <div className="w-full h-full animate-in fade-in duration-1000 flex flex-col gap-4">
+                    <div className="flex justify-center">
+                        <Button
+                            variant={remoteControlEnabled ? "secondary" : "outline"}
+                            onClick={() => setRemoteControlEnabled(!remoteControlEnabled)}
+                            className="bg-slate-900/50 border-slate-700 text-white"
+                        >
+                            <Settings className="w-4 h-4 mr-2" />
+                            {remoteControlEnabled ? "Remote Control Enabled" : "Enable Remote Control"}
+                        </Button>
+                    </div>
+                    <div className="flex-1 relative cursor-crosshair overflow-hidden rounded-xl border border-slate-800 shadow-2xl">
+                        <StreamPlayer
+                            stream={remoteStream}
+                            deviceName="Remote Host"
+                            onClose={() => setRemoteStream(null)}
+                            onMouseMove={handleMouseMove}
+                            onMouseDown={handleMouseDown}
+                            onMouseUp={handleMouseUp}
+                        />
+                    </div>
                 </div>
             )}
 

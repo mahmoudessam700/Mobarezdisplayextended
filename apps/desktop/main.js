@@ -44,6 +44,31 @@ function createWindow() {
     if (isDev) {
         mainWindow.webContents.openDevTools();
     }
+
+    // Remote Input Simulation
+    const { screen } = require('electron');
+    const { exec } = require('child_process');
+
+    ipcMain.on('simulate-input', (event, data) => {
+        if (process.platform !== 'darwin') return;
+
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width, height } = primaryDisplay.size;
+
+        if (data.type === 'mousemove') {
+            const absX = Math.round(data.x * width);
+            const absY = Math.round(data.y * height);
+
+            // Fast mouse move using AppleScript
+            const script = `tell application "System Events" to set the position of the pointer to {${absX}, ${absY}}`;
+            // Note: position of pointer requires macOS 11+ or specific accessibility tools.
+            // Alternative: use clclick if we can, or a simpler osascript for clicks
+            exec(`osascript -e 'tell application "System Events" to click at {${absX}, ${absY}}'`);
+        } else if (data.type === 'mousedown') {
+            // Simplified: click at current or specific location
+            // For full drag support, native modules like robotjs are better, but osascript works for clicks
+        }
+    });
 }
 
 app.whenReady().then(() => {
