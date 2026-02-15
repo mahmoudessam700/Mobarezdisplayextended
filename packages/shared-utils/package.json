@@ -1,0 +1,9 @@
+{
+    "name": "@display-extended/shared-utils",
+    "version": "1.0.0",
+    "private": true,
+    "main": "index.ts",
+    "devDependencies": {
+        "typescript": "^5.2.2"
+    }
+}

@@ -20,6 +20,7 @@ import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { DisplayPage } from './pages/display/DisplayPage';
 import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -29,58 +30,7 @@ export const router = createBrowserRouter([
     Component: RootLayout,
     ErrorBoundary: ErrorBoundary,
     children: [
-      {
-        index: true,
-        Component: Landing,
-      },
-      {
-        path: 'download',
-        Component: Download,
-      },
-      {
-        path: 'documentation',
-        Component: Documentation,
-      },
-      {
-        path: 'community',
-        Component: Community,
-      },
-      {
-        path: 'contact',
-        Component: Contact,
-      },
-      {
-        path: 'about',
-        Component: About,
-      },
-      {
-        path: 'blog',
-        Component: Blog,
-      },
-      {
-        path: 'careers',
-        Component: Careers,
-      },
-      {
-        path: 'press-kit',
-        Component: PressKit,
-      },
-      {
-        path: 'privacy',
-        Component: Privacy,
-      },
-      {
-        path: 'terms',
-        Component: Terms,
-      },
-      {
-        path: 'login',
-        Component: Login,
-      },
-      {
-        path: 'register',
-        Component: Register,
-      },
+      // ... (lines 32-84)
     ],
   },
   {
@@ -88,31 +38,13 @@ export const router = createBrowserRouter([
     Component: Dashboard,
     ErrorBoundary: ErrorBoundary,
     children: [
-      {
-        index: true,
-        Component: Devices,
-      },
-      {
-        path: 'sessions',
-        Component: Sessions,
-      },
-      {
-        path: 'analytics',
-        Component: Analytics,
-      },
-      {
-        path: 'settings',
-        Component: Settings,
-      },
-      {
-        path: 'account',
-        Component: Account,
-      },
-      {
-        path: 'help',
-        Component: Help,
-      },
+      // ... (lines 91-115)
     ],
+  },
+  {
+    path: '/display',
+    Component: DisplayPage,
+    ErrorBoundary: ErrorBoundary,
   },
   {
     path: '*',
