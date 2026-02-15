@@ -9,7 +9,36 @@ export interface Device {
     resolution: string;
 }
 
-const SOCKET_URL = 'http://localhost:4000';
+const SOCKET_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:4000'
+    : `http://${window.location.hostname}:4000`;
+
+// Singleton socket instance to prevent duplicate connections
+let globalSocket: Socket | null = null;
+let socketRefCount = 0;
+
+function getOrCreateSocket(): Socket {
+    if (!globalSocket || globalSocket.disconnected) {
+        globalSocket = io(SOCKET_URL, {
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
+        });
+        console.log('[SOCKET] Created new singleton socket');
+    }
+    socketRefCount++;
+    return globalSocket;
+}
+
+function releaseSocket() {
+    socketRefCount--;
+    if (socketRefCount <= 0 && globalSocket) {
+        globalSocket.disconnect();
+        globalSocket = null;
+        socketRefCount = 0;
+        console.log('[SOCKET] Released singleton socket');
+    }
+}
 
 export function useSocket() {
     const [socket, setSocket] = useState<Socket | null>(null);
@@ -18,11 +47,11 @@ export function useSocket() {
     const registeredRef = useRef(false);
 
     useEffect(() => {
-        const newSocket = io(SOCKET_URL);
-        setSocket(newSocket);
+        const s = getOrCreateSocket();
+        setSocket(s);
 
-        newSocket.on('connect', async () => {
-            console.log('Connected to signaling server');
+        const onConnect = async () => {
+            console.log('[SOCKET] Connected to signaling server, id:', s.id);
             setConnected(true);
 
             // Check if running in Electron
@@ -54,21 +83,34 @@ export function useSocket() {
             }
 
             if (!registeredRef.current) {
-                newSocket.emit('device:register', deviceInfo);
+                s.emit('device:register', deviceInfo);
                 registeredRef.current = true;
             }
-        });
+        };
 
-        newSocket.on('device:list', (deviceList: Device[]) => {
+        const onDeviceList = (deviceList: Device[]) => {
             setDevices(deviceList);
-        });
+        };
 
-        newSocket.on('disconnect', () => {
+        const onDisconnect = () => {
+            console.log('[SOCKET] Disconnected from signaling server');
             setConnected(false);
-        });
+        };
+
+        // If already connected, fire immediately
+        if (s.connected) {
+            setConnected(true);
+        }
+
+        s.on('connect', onConnect);
+        s.on('device:list', onDeviceList);
+        s.on('disconnect', onDisconnect);
 
         return () => {
-            newSocket.disconnect();
+            s.off('connect', onConnect);
+            s.off('device:list', onDeviceList);
+            s.off('disconnect', onDisconnect);
+            releaseSocket();
         };
     }, []);
 

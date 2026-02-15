@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Scan, Plus, Wifi, WifiOff, Monitor } from 'lucide-react';
 import { DeviceCard, DeviceType, DeviceStatus } from '../../components/DeviceCard';
 import { ConnectionModal, ConnectionSettings } from '../../components/ConnectionModal';
@@ -34,17 +34,29 @@ export function Devices() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [showPairingModal, setShowPairingModal] = useState(false);
+  const [pairedTargetId, setPairedTargetId] = useState<string | null>(null);
 
-  const onPairingVerify = (code: string) => {
-    socket?.emit('pairing:verify', { code });
-    toast.loading('Verifying pairing code...');
-  };
+  const onPairingVerify = useCallback((code: string) => {
+    console.log('[DASHBOARD] onPairingVerify called with code:', code);
+    console.log('[DASHBOARD] socket exists:', !!socket);
+    console.log('[DASHBOARD] socket connected:', socket?.connected);
+    if (socket && socket.connected) {
+      socket.emit('pairing:verify', { code });
+      console.log('[DASHBOARD] Emitted pairing:verify with code:', code);
+      toast.loading('Verifying pairing code...');
+    } else {
+      console.error('[DASHBOARD] Socket is not connected!');
+      toast.error('Not connected to server. Please refresh the page.');
+    }
+  }, [socket]);
 
   useEffect(() => {
     if (!socket) return;
 
     const handlePairingSuccess = ({ targetId }: { targetId: string }) => {
-      toast.success('Pairing successful!');
+      console.log('[DASHBOARD] Pairing success! Target display:', targetId);
+      toast.success('Pairing successful! Click "Become Host" to start streaming.');
+      setPairedTargetId(targetId);
       setShowPairingModal(false);
     };
 
@@ -145,7 +157,9 @@ export function Devices() {
             <Button
               variant="outline"
               onClick={() => {
-                toast.promise(startScreenShare('broadcast'), {
+                const target = pairedTargetId || 'broadcast';
+                console.log('[DASHBOARD] Starting screen share to target:', target);
+                toast.promise(startScreenShare(target), {
                   loading: 'Preparing stream...',
                   success: 'Screen streaming active',
                   error: 'Sharing cancelled'

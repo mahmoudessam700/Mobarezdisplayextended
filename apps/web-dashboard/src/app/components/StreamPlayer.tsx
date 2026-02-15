@@ -26,7 +26,14 @@ export function StreamPlayer({ stream, deviceName, onClose }: StreamPlayerProps)
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="w-full h-full object-contain"
+                onCanPlay={() => {
+                    console.log('[STREAM] Video can play');
+                    videoRef.current?.play().catch(e => console.error('[STREAM] Play failed:', e));
+                }}
+                onPlay={() => console.log('[STREAM] Video started playing')}
+                onError={(e) => console.error('[STREAM] Video error:', e)}
             />
 
             {/* Overlay Controls */}

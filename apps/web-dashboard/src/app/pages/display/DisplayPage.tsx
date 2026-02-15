@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { StreamPlayer } from '../../components/StreamPlayer';
-import { Monitor, Wifi, Maximize2 } from 'lucide-react';
+import { Monitor, Wifi, Maximize2, RefreshCw } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 
 export function DisplayPage() {
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [pairingCode, setPairingCode] = useState<string | null>(null);
+    const [socketId, setSocketId] = useState<string | null>(null);
     const { socket, connected } = useSocket();
     const { isStreaming } = useWebRTC({
         socket,
@@ -16,18 +17,32 @@ export function DisplayPage() {
 
     useEffect(() => {
         if (connected && socket) {
-            console.log('Display Mode Active: Requesting pairing code');
+            setSocketId(socket.id ?? null);
+            console.log('[DISPLAY] Connected as:', socket.id, '- Requesting pairing code...');
             socket.emit('pairing:request-code');
 
-            socket.on('pairing:code-generated', ({ code }: { code: string }) => {
+            const handleCodeGenerated = ({ code }: { code: string }) => {
+                console.log('[DISPLAY] Received pairing code:', code);
                 setPairingCode(code);
-            });
+            };
+
+            socket.on('pairing:code-generated', handleCodeGenerated);
 
             return () => {
-                socket.off('pairing:code-generated');
+                socket.off('pairing:code-generated', handleCodeGenerated);
             };
+        } else {
+            setPairingCode(null);
+            setSocketId(null);
         }
     }, [connected, socket]);
+
+    const requestNewCode = () => {
+        if (socket && connected) {
+            console.log('[DISPLAY] Manually requesting new code');
+            socket.emit('pairing:request-code');
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4">
@@ -45,9 +60,9 @@ export function DisplayPage() {
                         </p>
                     </div>
 
-                    {pairingCode && (
+                    {pairingCode ? (
                         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
-                            <div className="flex justify-center gap-3">
+                            <div className="flex justify-center gap-3" dir="ltr">
                                 {pairingCode.split('').map((char, i) => (
                                     <div key={i} className="w-12 h-16 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 shadow-inner">
                                         <span className="text-3xl font-mono font-bold text-blue-400">{char}</span>
@@ -55,6 +70,24 @@ export function DisplayPage() {
                                 ))}
                             </div>
                             <p className="text-slate-500 text-xs mt-6 uppercase tracking-widest font-semibold">PAIRING CODE</p>
+                            <button
+                                onClick={requestNewCode}
+                                className="mt-4 text-xs text-slate-500 hover:text-blue-400 transition-colors flex items-center gap-1 mx-auto"
+                            >
+                                <RefreshCw className="w-3 h-3" />
+                                Generate New Code
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
+                            <div className="flex justify-center gap-3" dir="ltr">
+                                {['·', '·', '·', '·', '·', '·'].map((char, i) => (
+                                    <div key={i} className="w-12 h-16 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 shadow-inner animate-pulse">
+                                        <span className="text-3xl font-mono font-bold text-slate-600">{char}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-yellow-500 text-xs mt-6 uppercase tracking-widest font-semibold">CONNECTING TO SERVER...</p>
                         </div>
                     )}
 
@@ -69,7 +102,14 @@ export function DisplayPage() {
                         </Badge>
                     </div>
 
-                    <div className="pt-8">
+                    {/* Debug info - socket ID for cross-referencing with server */}
+                    {socketId && (
+                        <p className="text-slate-700 text-[10px] font-mono">
+                            Socket: {socketId}
+                        </p>
+                    )}
+
+                    <div className="pt-4">
                         <div className="flex gap-1 justify-center">
                             {[0, 1, 2].map((i) => (
                                 <div

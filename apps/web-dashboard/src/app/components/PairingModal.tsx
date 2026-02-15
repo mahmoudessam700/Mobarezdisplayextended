@@ -34,6 +34,7 @@ export function PairingModal({ open, onOpenChange, onVerify }: PairingModalProps
                         onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                         className="text-center text-3xl tracking-[1em] font-mono h-16 w-full max-w-[280px]"
                         placeholder="000000"
+                        dir="ltr"
                         autoFocus
                     />
                 </div>

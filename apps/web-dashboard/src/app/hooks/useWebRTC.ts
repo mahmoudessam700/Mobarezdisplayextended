@@ -27,8 +27,19 @@ export function useWebRTC({ socket, onRemoteStream }: UseWebRTCOptions) {
         };
 
         pc.ontrack = (event) => {
+            console.log('[WEBRTC] Received remote track:', event.track.kind, event.track.label);
             if (event.streams && event.streams[0]) {
-                onRemoteStream(event.streams[0]);
+                const stream = event.streams[0];
+                console.log('[WEBRTC] Stream info:', {
+                    id: stream.id,
+                    tracks: stream.getTracks().map(t => ({
+                        kind: t.kind,
+                        label: t.label,
+                        enabled: t.enabled,
+                        readyState: t.readyState
+                    }))
+                });
+                onRemoteStream(stream);
             }
         };
 

@@ -16,15 +16,16 @@ const io = new Server(server, {
 
 const PORT = 4000;
 
-// In-memory device registry
+// In-memory registries (Global Scope)
 let devices = new Map();
+const pairingCodes = new Map(); // code -> socketId
 
 io.on('connection', (socket) => {
-    console.log('Connected:', socket.id);
+    console.log(`[SOCKET] Connected: ${socket.id}`);
 
     // Device registration
     socket.on('device:register', (deviceInfo) => {
-        console.log('Registering device:', deviceInfo.name || socket.id);
+        console.log(`[DEVICE] Registering: ${deviceInfo.name || socket.id} (${socket.id})`);
         const device = {
             id: socket.id,
             name: deviceInfo.name || 'Unknown Device',
@@ -33,91 +34,91 @@ io.on('connection', (socket) => {
             resolution: deviceInfo.resolution || 'N/A'
         };
         devices.set(socket.id, device);
-
-        // Broadcast updated device list to all clients
         io.emit('device:list', Array.from(devices.values()));
     });
 
-    // Get initial device list
     socket.on('device:request-list', () => {
         socket.emit('device:list', Array.from(devices.values()));
     });
 
     // Secure Pairing Logic
-    const pairingCodes = new Map(); // code -> socketId
-
     socket.on('pairing:request-code', () => {
-        // Generate a random 6-digit code
         let code;
         do {
             code = Math.floor(100000 + Math.random() * 900000).toString();
         } while (pairingCodes.has(code));
 
         pairingCodes.set(code, socket.id);
-        console.log(`Generated pairing code ${code} for socket ${socket.id}`);
+        console.log(`[PAIRING] Generated: ${code} for Display: ${socket.id}`);
+        console.log(`[PAIRING] Active Codes Map:`, Array.from(pairingCodes.keys()));
+
         socket.emit('pairing:code-generated', { code });
 
-        // Auto-cleanup after 10 minutes
-        setTimeout(() => pairingCodes.delete(code), 600000);
+        // Cleanup after 10 minutes
+        setTimeout(() => {
+            if (pairingCodes.get(code) === socket.id) {
+                pairingCodes.delete(code);
+                console.log(`[PAIRING] Cleaned up expired code: ${code}`);
+            }
+        }, 600000);
     });
 
-    socket.on('pairing:verify', ({ code }) => {
+    socket.on('pairing:verify', (data) => {
+        // Handle both {code} and "code" payloads
+        const code = (typeof data === 'object' ? data.code : data).toString().trim();
+
+        console.log(`[PAIRING] Verifying: "${code}" from Dashboard: ${socket.id}`);
+        console.log(`[PAIRING] All Active Codes:`, Array.from(pairingCodes.keys()));
+
         const targetId = pairingCodes.get(code);
+
         if (targetId) {
-            console.log(`Pairing successful for code ${code}: ${socket.id} -> ${targetId}`);
+            console.log(`[PAIRING] SUCCESS: ${socket.id} -> ${targetId}`);
             socket.emit('pairing:success', { targetId });
-            // Forward connection intent
+
+            // Forward connection intent to the display client
             socket.to(targetId).emit('webrtc:connect-request', { fromId: socket.id });
-            // Cleanup code
+
+            // Remove code after successful use
             pairingCodes.delete(code);
         } else {
+            console.warn(`[PAIRING] FAILED: Code "${code}" not found in Map.`);
             socket.emit('pairing:error', { message: 'Invalid or expired code' });
         }
     });
 
-    // Room & Pairing Logic (Legacy/Simple)
-    socket.on('room:join', (roomId) => {
-        console.log(`Socket ${socket.id} joining room: ${roomId}`);
-        socket.join(roomId);
-        socket.emit('room:joined', roomId);
-    });
-
-    socket.on('device:pair', ({ code, deviceId }) => {
-        // Simple logic: Room ID is the pairing code
-        console.log(`Pairing device ${deviceId} with code ${code}`);
-        socket.join(code);
-        io.to(code).emit('device:paired', { deviceId, status: 'success' });
-    });
-
     // WebRTC Signaling Handlers
-    socket.on('webrtc:connect-request', ({ targetId, settings }) => {
-        console.log(`Forwarding connect request from ${socket.id} to ${targetId}`);
-        socket.to(targetId).emit('webrtc:connect-request', { fromId: socket.id, settings });
-    });
-
     socket.on('webrtc:offer', ({ targetId, offer }) => {
-        console.log(`Forwarding offer from ${socket.id} to ${targetId}`);
+        console.log(`[WEBRTC] Offer from ${socket.id} -> ${targetId}`);
         socket.to(targetId).emit('webrtc:offer', { fromId: socket.id, offer });
     });
 
     socket.on('webrtc:answer', ({ targetId, answer }) => {
-        console.log(`Forwarding answer from ${socket.id} to ${targetId}`);
+        console.log(`[WEBRTC] Answer from ${socket.id} -> ${targetId}`);
         socket.to(targetId).emit('webrtc:answer', { fromId: socket.id, answer });
     });
 
     socket.on('webrtc:ice-candidate', ({ targetId, candidate }) => {
+        console.log(`[WEBRTC] ICE candidate from ${socket.id} -> ${targetId}`);
         socket.to(targetId).emit('webrtc:ice-candidate', { fromId: socket.id, candidate });
     });
 
     socket.on('disconnect', () => {
-        console.log('Disconnected:', socket.id);
-        if (devices.has(socket.id)) {
-            devices.delete(socket.id);
-            io.emit('device:list', Array.from(devices.values()));
+        console.log(`[SOCKET] Disconnected: ${socket.id}`);
+        devices.delete(socket.id);
+
+        // Clean up any codes associated with this socket
+        for (const [code, id] of pairingCodes.entries()) {
+            if (id === socket.id) {
+                pairingCodes.delete(code);
+                console.log(`[PAIRING] Removed code ${code} due to disconnect`);
+            }
         }
+
+        io.emit('device:list', Array.from(devices.values()));
     });
 });
 
-server.listen(PORT, () => {
-    console.log(`Signaling server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[SERVER] Signaling server running on http://0.0.0.0:${PORT}`);
 });
