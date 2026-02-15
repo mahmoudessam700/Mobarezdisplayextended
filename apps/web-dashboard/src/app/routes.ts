@@ -30,7 +30,19 @@ export const router = createBrowserRouter([
     Component: RootLayout,
     ErrorBoundary: ErrorBoundary,
     children: [
-      // ... (lines 32-84)
+      { index: true, Component: Landing },
+      { path: 'download', Component: Download },
+      { path: 'docs', Component: Documentation },
+      { path: 'community', Component: Community },
+      { path: 'contact', Component: Contact },
+      { path: 'about', Component: About },
+      { path: 'blog', Component: Blog },
+      { path: 'careers', Component: Careers },
+      { path: 'press', Component: PressKit },
+      { path: 'privacy', Component: Privacy },
+      { path: 'terms', Component: Terms },
+      { path: 'login', Component: Login },
+      { path: 'register', Component: Register },
     ],
   },
   {
@@ -38,7 +50,12 @@ export const router = createBrowserRouter([
     Component: Dashboard,
     ErrorBoundary: ErrorBoundary,
     children: [
-      // ... (lines 91-115)
+      { index: true, Component: Devices },
+      { path: 'sessions', Component: Sessions },
+      { path: 'analytics', Component: Analytics },
+      { path: 'settings', Component: Settings },
+      { path: 'account', Component: Account },
+      { path: 'help', Component: Help },
     ],
   },
   {
