@@ -2,21 +2,21 @@
     "version": 2,
     "builds": [
         {
-            "src": "apps/web-dashboard/package.json",
+            "src": "package.json",
             "use": "@vercel/static-build",
             "config": {
-                "distDir": "dist"
+                "distDir": "apps/web-dashboard/dist"
             }
         }
     ],
-    "routes": [
+    "rewrites": [
         {
-            "src": "/assets/(.*)",
-            "dest": "/apps/web-dashboard/dist/assets/$1"
+            "source": "/assets/(.*)",
+            "destination": "apps/web-dashboard/dist/assets/$1"
         },
         {
-            "src": "/(.*)",
-            "dest": "/apps/web-dashboard/dist/index.html"
+            "source": "/(.*)",
+            "destination": "apps/web-dashboard/dist/index.html"
         }
     ]
 }
