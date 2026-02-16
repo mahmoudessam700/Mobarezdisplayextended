@@ -9,6 +9,7 @@ interface UseWebRTCOptions {
 export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
+    const [dataChannelReady, setDataChannelReady] = useState(false);
 
     const dataConnection = useRef<DataConnection | null>(null);
     const mediaConnection = useRef<MediaConnection | null>(null);
@@ -38,16 +39,31 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
     }, []);
 
     const setupDataConnection = useCallback((conn: DataConnection) => {
-        conn.on('open', () => console.log('[PEER] Data Connection Open'));
+        conn.on('open', () => {
+            console.log('[PEER] Data Connection Open — channel ready for input');
+            setDataChannelReady(true);
+        });
         conn.on('data', (data: any) => {
             console.log('[PEER-DATA] Received:', data);
             if (data.type === 'input') {
-                console.log('[PEER-DATA] Dispatching remote-input event');
+                console.log('[PEER-DATA] Dispatching remote-input event:', data.payload?.type);
                 window.dispatchEvent(new CustomEvent('remote-input', { detail: data.payload }));
             }
         });
-        conn.on('close', () => console.log('[PEER] Data Connection Closed'));
+        conn.on('close', () => {
+            console.log('[PEER] Data Connection Closed');
+            setDataChannelReady(false);
+        });
+        conn.on('error', (err: any) => {
+            console.error('[PEER] Data Connection Error:', err);
+            setDataChannelReady(false);
+        });
         dataConnection.current = conn;
+        // If the connection is already open (e.g. incoming connection), mark as ready
+        if (conn.open) {
+            console.log('[PEER] Data connection already open on setup');
+            setDataChannelReady(true);
+        }
     }, []);
 
     const startScreenShare = useCallback(async (targetId: string) => {
@@ -114,6 +130,7 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
         setIsStreaming(false);
         dataConnection.current?.close();
         dataConnection.current = null;
+        setDataChannelReady(false);
         mediaConnection.current?.close();
         mediaConnection.current = null;
     }, [localStream]);
@@ -165,7 +182,8 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
         stopStreaming,
         sendInputData,
         localStream,
-        isStreaming
+        isStreaming,
+        dataChannelReady
     };
 }
 

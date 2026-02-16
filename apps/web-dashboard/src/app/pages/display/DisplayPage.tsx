@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { usePeer } from '../../hooks/usePeer';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { StreamPlayer } from '../../components/StreamPlayer';
-import { Monitor, Wifi, Maximize2, RefreshCw, Settings } from 'lucide-react';
+import { Monitor, Wifi, Maximize2, RefreshCw, Settings, MousePointer } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 
@@ -20,7 +20,7 @@ export function DisplayPage() {
     }, []);
 
     const { peer, connected, error } = usePeer(pairingCode || undefined);
-    const { isStreaming, sendInputData } = useWebRTC({
+    const { isStreaming, sendInputData, dataChannelReady } = useWebRTC({
         peer,
         onRemoteStream: (stream) => setRemoteStream(stream)
     });
@@ -35,12 +35,18 @@ export function DisplayPage() {
 
     const handleMouseDown = (e: React.MouseEvent<HTMLVideoElement>) => {
         if (!remoteControlEnabled || !sendInputData) return;
-        sendInputData({ type: 'mousedown', button: e.button });
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        sendInputData({ type: 'mousedown', button: e.button, x, y });
     };
 
     const handleMouseUp = (e: React.MouseEvent<HTMLVideoElement>) => {
         if (!remoteControlEnabled || !sendInputData) return;
-        sendInputData({ type: 'mouseup', button: e.button });
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        sendInputData({ type: 'mouseup', button: e.button, x, y });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -147,15 +153,34 @@ export function DisplayPage() {
                 </div>
             ) : (
                 <div className="w-full h-full animate-in fade-in duration-1000 flex flex-col gap-4">
-                    <div className="flex justify-center">
+                    <div className="flex justify-center items-center gap-3">
                         <Button
                             variant={remoteControlEnabled ? "secondary" : "outline"}
                             onClick={() => setRemoteControlEnabled(!remoteControlEnabled)}
-                            className="bg-slate-900/50 border-slate-700 text-white"
+                            className={`bg-slate-900/50 border-slate-700 text-white ${!dataChannelReady ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
+                            disabled={!dataChannelReady}
                         >
                             <Settings className="w-4 h-4 mr-2" />
-                            {remoteControlEnabled ? "Remote Control Enabled" : "Enable Remote Control"}
+                            {!dataChannelReady
+                                ? "Waiting for Data Channel..."
+                                : remoteControlEnabled
+                                    ? "Remote Control Enabled"
+                                    : "Enable Remote Control"
+                            }
                         </Button>
+                        {dataChannelReady && remoteControlEnabled && (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+                                <MousePointer className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-xs text-emerald-400 font-medium">Input Active</span>
+                            </div>
+                        )}
+                        {!dataChannelReady && (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/30">
+                                <Wifi className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
+                                <span className="text-xs text-yellow-400 font-medium">Connecting...</span>
+                            </div>
+                        )}
                     </div>
                     <div className="flex-1 relative cursor-crosshair overflow-hidden rounded-xl border border-slate-800 shadow-2xl">
                         <StreamPlayer

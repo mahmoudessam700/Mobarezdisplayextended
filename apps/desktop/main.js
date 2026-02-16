@@ -52,6 +52,10 @@ function createWindow() {
     const { exec, spawn } = require('child_process');
     const fs = require('fs');
 
+    // Track last known mouse position for click events
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
     ipcMain.on('simulate-input', (event, data) => {
         console.log('[ELECTRON-IPC] Received simulate-input:', data.type);
         if (process.platform !== 'darwin') {
@@ -65,40 +69,90 @@ function createWindow() {
         if (data.type === 'mousemove') {
             const absX = Math.round(data.x * width);
             const absY = Math.round(data.y * height);
-            console.log(`[ELECTRON-IPC] moving to: ${absX}, ${absY}`);
-            exec(`osascript -e 'tell application "System Events" to set the position of the pointer to {${absX}, ${absY}}'`, (err) => {
-                if (err) console.error('[ELECTRON-IPC] Mouse move error:', err);
+            lastMouseX = absX;
+            lastMouseY = absY;
+            // Use CGEvent via JXA (JavaScript for Automation) — works on modern macOS
+            const jxaScript = `
+                ObjC.import('CoreGraphics');
+                var point = $.CGPointMake(${absX}, ${absY});
+                var moveEvent = $.CGEventCreateMouseEvent(null, $.kCGEventMouseMoved, point, 0);
+                $.CGEventPost($.kCGHIDEventTap, moveEvent);
+            `;
+            exec(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''")}'`, (err) => {
+                if (err) console.error('[ELECTRON-IPC] Mouse move error:', err.message);
             });
         } else if (data.type === 'mousedown') {
-            console.log('[ELECTRON-IPC] clicking');
-            exec(`osascript -e 'tell application "System Events" to click'`, (err) => {
-                if (err) console.error('[ELECTRON-IPC] Click error:', err);
+            const absX = data.x !== undefined ? Math.round(data.x * width) : lastMouseX;
+            const absY = data.y !== undefined ? Math.round(data.y * height) : lastMouseY;
+            console.log(`[ELECTRON-IPC] clicking at: ${absX}, ${absY}`);
+            const jxaScript = `
+                ObjC.import('CoreGraphics');
+                var point = $.CGPointMake(${absX}, ${absY});
+                var downEvent = $.CGEventCreateMouseEvent(null, $.kCGEventLeftMouseDown, point, 0);
+                $.CGEventPost($.kCGHIDEventTap, downEvent);
+            `;
+            exec(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''")}'`, (err) => {
+                if (err) console.error('[ELECTRON-IPC] Mouse down error:', err.message);
+            });
+        } else if (data.type === 'mouseup') {
+            const absX = data.x !== undefined ? Math.round(data.x * width) : lastMouseX;
+            const absY = data.y !== undefined ? Math.round(data.y * height) : lastMouseY;
+            const jxaScript = `
+                ObjC.import('CoreGraphics');
+                var point = $.CGPointMake(${absX}, ${absY});
+                var upEvent = $.CGEventCreateMouseEvent(null, $.kCGEventLeftMouseUp, point, 0);
+                $.CGEventPost($.kCGHIDEventTap, upEvent);
+            `;
+            exec(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''")}'`, (err) => {
+                if (err) console.error('[ELECTRON-IPC] Mouse up error:', err.message);
             });
         } else if (data.type === 'keydown') {
             console.log('[ELECTRON-IPC] keydown:', data.key);
             const key = data.key;
-            // Escape double quotes for shell
             const escapedKey = key.replace(/"/g, '\\"');
             if (key.length === 1) {
-                // Regular character
+                // Regular character keystroke via AppleScript (this works fine)
                 exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`, (err) => {
-                    if (err) console.error('[ELECTRON-IPC] Keystroke error:', err);
+                    if (err) console.error('[ELECTRON-IPC] Keystroke error:', err.message);
                 });
             } else {
-                // Special key (Enter, Escape, etc.)
-                const keyMap = {
-                    'Enter': 'return',
-                    'Escape': 'escape',
-                    'Tab': 'tab',
-                    'Backspace': 'delete',
+                // Special keys using key codes
+                const keyCodeMap = {
+                    'Enter': 36,
+                    'Return': 36,
+                    'Escape': 53,
+                    'Tab': 48,
+                    'Backspace': 51,
+                    'Delete': 117,
+                    'ArrowUp': 126,
+                    'ArrowDown': 125,
+                    'ArrowLeft': 123,
+                    'ArrowRight': 124,
+                    'Space': 49,
+                    ' ': 49,
+                    'Home': 115,
+                    'End': 119,
+                    'PageUp': 116,
+                    'PageDown': 121,
+                    'F1': 122, 'F2': 120, 'F3': 99, 'F4': 118,
+                    'F5': 96, 'F6': 97, 'F7': 98, 'F8': 100,
+                    'F9': 101, 'F10': 109, 'F11': 103, 'F12': 111,
                 };
-                const mappedKey = keyMap[key] || key.toLowerCase();
-                exec(`osascript -e 'tell application "System Events" to key code ${mappedKey}'`, (err) => {
-                    if (err) {
-                        console.warn('[ELECTRON-IPC] Key code failing, falling back to keystroke');
-                        exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`);
-                    }
-                });
+                const keyCode = keyCodeMap[key];
+                if (keyCode !== undefined) {
+                    // Build modifier flags
+                    let modifierParts = [];
+                    if (data.modifiers?.shift) modifierParts.push('shift down');
+                    if (data.modifiers?.ctrl) modifierParts.push('control down');
+                    if (data.modifiers?.alt) modifierParts.push('option down');
+                    if (data.modifiers?.meta) modifierParts.push('command down');
+                    const usingClause = modifierParts.length > 0 ? ` using {${modifierParts.join(', ')}}` : '';
+                    exec(`osascript -e 'tell application "System Events" to key code ${keyCode}${usingClause}'`, (err) => {
+                        if (err) console.error('[ELECTRON-IPC] Key code error:', err.message);
+                    });
+                } else {
+                    console.warn('[ELECTRON-IPC] Unknown special key:', key);
+                }
             }
         }
     });
