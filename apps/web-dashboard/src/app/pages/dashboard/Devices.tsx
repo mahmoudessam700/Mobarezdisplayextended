@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Scan, Plus, Wifi, WifiOff, Monitor, RefreshCw } from 'lucide-react';
 import { DeviceCard, DeviceType, DeviceStatus } from '../../components/DeviceCard';
 import { ConnectionModal, ConnectionSettings } from '../../components/ConnectionModal';
@@ -25,7 +25,7 @@ export function Devices() {
   const { t } = useTranslation();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const { peer, connected } = usePeer();
-  const { startScreenShare, stopStreaming, isStreaming, remoteCursorPos, remoteClickEffect } = useWebRTC({
+  const { startScreenShare, stopStreaming, isStreaming, remoteCursorPos, remoteClickEffect, remoteLastKey } = useWebRTC({
     peer,
     onRemoteStream: (stream) => setRemoteStream(stream)
   });
@@ -178,11 +178,39 @@ export function Devices() {
             <h2 className="text-xl sm:text-2xl font-semibold">Remote Display</h2>
             <Button variant="ghost" onClick={() => setRemoteStream(null)}>Close Stream</Button>
           </div>
-          <StreamPlayer
-            stream={remoteStream}
-            deviceName={allDevices.find(d => d.status === 'connected')?.name || 'Remote Device'}
-            onClose={() => setRemoteStream(null)}
-          />
+          <div className="relative">
+            <StreamPlayer
+              stream={remoteStream}
+              deviceName={allDevices.find(d => d.status === 'connected')?.name || 'Remote Device'}
+              onClose={() => setRemoteStream(null)}
+            />
+            {/* Remote Cursor Overlay on stream */}
+            {remoteCursorPos && (
+              <>
+                {/* Cursor dot */}
+                <div
+                  className="absolute w-5 h-5 rounded-full bg-blue-500/80 border-2 border-white shadow-lg shadow-blue-500/50 pointer-events-none z-20 transition-all duration-75"
+                  style={{
+                    left: `${remoteCursorPos.x * 100}%`,
+                    top: `${remoteCursorPos.y * 100}%`,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                />
+                {/* Click ripple */}
+                <div
+                  key={remoteClickEffect}
+                  className="absolute w-10 h-10 rounded-full border-2 border-blue-400 pointer-events-none z-20 animate-ping"
+                  style={{
+                    left: `${remoteCursorPos.x * 100}%`,
+                    top: `${remoteCursorPos.y * 100}%`,
+                    transform: 'translate(-50%, -50%)',
+                    animationDuration: '0.6s',
+                    animationIterationCount: '1',
+                  }}
+                />
+              </>
+            )}
+          </div>
         </motion.div>
       )}
 
@@ -201,6 +229,9 @@ export function Devices() {
             <div className="text-xs text-slate-400 space-y-1 font-mono">
               <div>Cursor: ({Math.round(remoteCursorPos.x * 100)}%, {Math.round(remoteCursorPos.y * 100)}%)</div>
               <div>Clicks: {remoteClickEffect}</div>
+              {remoteLastKey && (
+                <div className="mt-1 px-2 py-0.5 bg-slate-800 rounded text-blue-300 inline-block">⌨ {remoteLastKey}</div>
+              )}
             </div>
           </div>
         </motion.div>

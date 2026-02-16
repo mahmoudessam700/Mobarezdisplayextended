@@ -26,7 +26,15 @@ export function DisplayPage() {
     });
 
     const lastMouseSendRef = useRef(0);
+    const containerRef = useRef<HTMLDivElement>(null);
     const MOUSE_THROTTLE_MS = 50; // Send at most 20 mousemove events per second
+
+    // Auto-focus the container so keyboard events fire immediately
+    useEffect(() => {
+        if (remoteStream && containerRef.current) {
+            containerRef.current.focus();
+        }
+    }, [remoteStream]);
 
     const handleMouseMove = (e: React.MouseEvent<HTMLVideoElement>) => {
         if (!remoteControlEnabled || !sendInputData) return;
@@ -41,6 +49,7 @@ export function DisplayPage() {
 
     const handleMouseDown = (e: React.MouseEvent<HTMLVideoElement>) => {
         if (!remoteControlEnabled || !sendInputData) return;
+        e.preventDefault(); // Prevent text selection / default browser behavior
         const rect = e.currentTarget.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width;
         const y = (e.clientY - rect.top) / rect.height;
@@ -65,6 +74,7 @@ export function DisplayPage() {
                 meta: e.metaKey
             }
         });
+        e.preventDefault(); // Prevent browser shortcuts from firing
     };
 
     const requestNewCode = () => {
@@ -75,8 +85,10 @@ export function DisplayPage() {
 
     return (
         <div
+            ref={containerRef}
             className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 outline-none"
             onKeyDown={handleKeyDown}
+            onContextMenu={(e) => { if (remoteControlEnabled) e.preventDefault(); }}
             tabIndex={0}
         >
             {!remoteStream ? (

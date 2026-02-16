@@ -35,12 +35,13 @@ function createWindow() {
         }));
     });
 
-    // In production, we would load the built frontend.
-    // In development, we load from the dev server.
+    // In production, load the deployed web URL so we use the same PeerJS network.
+    // In development, load from the local dev server.
     const startUrl = isDev
         ? 'http://localhost:5173'
-        : `file://${path.join(__dirname, '../web-dashboard/dist/index.html')}`;
+        : 'https://displayextend.mm-codes.com';
 
+    console.log('[ELECTRON] Loading URL:', startUrl);
     mainWindow.loadURL(startUrl);
 
     if (isDev) {

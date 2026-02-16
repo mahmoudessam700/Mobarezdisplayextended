@@ -13,6 +13,7 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
     const [dataChannelReady, setDataChannelReady] = useState(false);
     const [remoteCursorPos, setRemoteCursorPos] = useState<{ x: number; y: number } | null>(null);
     const [remoteClickEffect, setRemoteClickEffect] = useState(0);
+    const [remoteLastKey, setRemoteLastKey] = useState<string | null>(null);
 
     const dataConnection = useRef<DataConnection | null>(null);
     const mediaConnection = useRef<MediaConnection | null>(null);
@@ -57,6 +58,10 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
                     if (data.x !== undefined && data.y !== undefined) {
                         setRemoteCursorPos({ x: data.x, y: data.y });
                     }
+                } else if (data?.type === 'keydown') {
+                    setRemoteLastKey(data.key || data.code || 'key');
+                    // Auto-clear after 1.5s
+                    setTimeout(() => setRemoteLastKey(null), 1500);
                 }
             }
         };
@@ -212,6 +217,7 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
         isStreaming,
         dataChannelReady,
         remoteCursorPos,
-        remoteClickEffect
+        remoteClickEffect,
+        remoteLastKey
     };
 }
