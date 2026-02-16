@@ -178,32 +178,30 @@ export function Devices() {
             <h2 className="text-xl sm:text-2xl font-semibold">Remote Display</h2>
             <Button variant="ghost" onClick={() => setRemoteStream(null)}>Close Stream</Button>
           </div>
-          <div className="relative">
-            <StreamPlayer
-              stream={remoteStream}
-              deviceName={allDevices.find(d => d.status === 'connected')?.name || 'Remote Device'}
-              onClose={() => setRemoteStream(null)}
-            />
-            {/* Remote cursor overlay — shows where the remote user is pointing/clicking */}
-            {remoteCursorPos && (
-              <div
-                className="absolute pointer-events-none z-50"
-                style={{
-                  left: `${remoteCursorPos.x * 100}%`,
-                  top: `${remoteCursorPos.y * 100}%`,
-                  transform: 'translate(-50%, -50%)',
-                }}
-              >
-                {/* Cursor dot */}
-                <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-lg shadow-blue-500/50" />
-                {/* Click ripple effect */}
-                <div
-                  key={remoteClickEffect}
-                  className="absolute inset-0 w-8 h-8 -ml-2 -mt-2 rounded-full border-2 border-blue-400 animate-ping opacity-75"
-                  style={{ animationDuration: '0.6s', animationIterationCount: 1 }}
-                />
-              </div>
-            )}
+          <StreamPlayer
+            stream={remoteStream}
+            deviceName={allDevices.find(d => d.status === 'connected')?.name || 'Remote Device'}
+            onClose={() => setRemoteStream(null)}
+          />
+        </motion.div>
+      )}
+
+      {/* Remote Control Indicator — shows when host is streaming and remote user is controlling */}
+      {isStreaming && remoteCursorPos && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-6 right-6 z-50"
+        >
+          <div className="bg-slate-900/95 border border-blue-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-sm min-w-[200px]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-sm font-semibold text-blue-400">Remote Control Active</span>
+            </div>
+            <div className="text-xs text-slate-400 space-y-1 font-mono">
+              <div>Cursor: ({Math.round(remoteCursorPos.x * 100)}%, {Math.round(remoteCursorPos.y * 100)}%)</div>
+              <div>Clicks: {remoteClickEffect}</div>
+            </div>
           </div>
         </motion.div>
       )}
