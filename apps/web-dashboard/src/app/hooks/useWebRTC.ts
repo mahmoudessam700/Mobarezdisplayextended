@@ -18,11 +18,15 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
     const dataConnection = useRef<DataConnection | null>(null);
     const mediaConnection = useRef<MediaConnection | null>(null);
     const onRemoteInputRef = useRef(onRemoteInput);
+    const onRemoteStreamRef = useRef(onRemoteStream);
 
-    // Keep onRemoteInput ref up to date
+    // Keep refs up to date
     useEffect(() => {
         onRemoteInputRef.current = onRemoteInput;
     }, [onRemoteInput]);
+    useEffect(() => {
+        onRemoteStreamRef.current = onRemoteStream;
+    }, [onRemoteStream]);
 
     // Bridge remote-input events to Electron IPC or handle in-browser
     useEffect(() => {
@@ -197,7 +201,7 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
 
             call.on('stream', (remoteStream) => {
                 console.log('[PEER] Received remote stream');
-                onRemoteStream(remoteStream);
+                onRemoteStreamRef.current(remoteStream);
             });
 
             mediaConnection.current = call;
@@ -207,7 +211,7 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
             peer.off('connection');
             peer.off('call');
         };
-    }, [peer, setupDataConnection, onRemoteStream]);
+    }, [peer, setupDataConnection]);
 
     return {
         startScreenShare,
