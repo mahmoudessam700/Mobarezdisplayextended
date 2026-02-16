@@ -2,20 +2,15 @@
   "name": "display-extended-monorepo",
   "private": true,
   "scripts": {
-    "dev": "npm run dev:dashboard",
+    "dev": "concurrently -n dashboard,electron -c green,magenta \"npm run dev:dashboard\" \"sleep 3 && npm run dev:desktop\"",
     "dev:dashboard": "npm run dev --workspace=@display-extended/web-dashboard",
     "dev:desktop": "npm run dev --workspace=@display-extended/desktop",
-    "dev:signaling": "npm start --workspace=@display-extended/signaling-server",
     "build": "npm run build:dashboard",
     "build:dashboard": "npm run build --workspace=@display-extended/web-dashboard",
-    "start:all": "concurrently -n signaling,dashboard -c blue,green \"npm run dev:signaling\" \"npm run dev:dashboard\"",
-    "start:prod": "npm run build:dashboard && npm run dev:signaling",
-    "start:desktop": "concurrently -n signaling,dashboard,electron -c blue,green,magenta \"npm run dev:signaling\" \"npm run dev:dashboard\" \"sleep 3 && npm run dev:desktop\"",
     "install:all": "npm install"
   },
   "workspaces": [
     "apps/*",
-    "services/*",
     "packages/*"
   ],
   "devDependencies": {

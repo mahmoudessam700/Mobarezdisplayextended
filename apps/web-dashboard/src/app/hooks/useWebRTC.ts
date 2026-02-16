@@ -1,82 +1,32 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-// @ts-ignore
-import { Socket } from 'socket.io-client';
+import type { Peer, DataConnection, MediaConnection } from 'peerjs';
 
 interface UseWebRTCOptions {
-    socket: Socket | null;
+    peer: Peer | null;
     onRemoteStream: (stream: MediaStream) => void;
 }
 
-export function useWebRTC({ socket, onRemoteStream }: UseWebRTCOptions) {
-    const peerConnection = useRef<RTCPeerConnection | null>(null);
-    const dataChannel = useRef<RTCDataChannel | null>(null);
+export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
 
-    const setupDataChannel = useCallback((channel: RTCDataChannel) => {
-        channel.onopen = () => console.log('[WEBRTC] Data Channel Open');
-        channel.onclose = () => console.log('[WEBRTC] Data Channel Closed');
-        channel.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                console.log('[WEBRTC] Data Channel Message:', data);
-                // Handle incoming input events if we are the host
-                if (data.type === 'input') {
-                    // This will be handled by the specialized host logic
-                    window.dispatchEvent(new CustomEvent('remote-input', { detail: data.payload }));
-                }
-            } catch (e) {
-                console.error('[WEBRTC] Error parsing data channel message:', e);
+    const dataConnection = useRef<DataConnection | null>(null);
+    const mediaConnection = useRef<MediaConnection | null>(null);
+
+    const setupDataConnection = useCallback((conn: DataConnection) => {
+        conn.on('open', () => console.log('[PEER] Data Connection Open'));
+        conn.on('data', (data: any) => {
+            console.log('[PEER] Received Data:', data);
+            if (data.type === 'input') {
+                window.dispatchEvent(new CustomEvent('remote-input', { detail: data.payload }));
             }
-        };
-        dataChannel.current = channel;
+        });
+        conn.on('close', () => console.log('[PEER] Data Connection Closed'));
+        dataConnection.current = conn;
     }, []);
 
-    const createPeerConnection = useCallback((targetId: string, isSender: boolean) => {
-        const pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require'
-        });
-
-        if (isSender) {
-            const dc = pc.createDataChannel('input-relay', { ordered: false }); // Unordered for lower latency mouse moves
-            setupDataChannel(dc);
-        }
-
-        pc.ondatachannel = (event) => {
-            console.log('[WEBRTC] Received Data Channel');
-            setupDataChannel(event.channel);
-        };
-
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket?.emit('webrtc:ice-candidate', { targetId, candidate: event.candidate });
-            }
-        };
-
-        pc.ontrack = (event) => {
-            console.log('[WEBRTC] Received remote track:', event.track.kind, event.track.label);
-            if (event.streams && event.streams[0]) {
-                const stream = event.streams[0];
-                console.log('[WEBRTC] Stream info:', {
-                    id: stream.id,
-                    tracks: stream.getTracks().map(t => ({
-                        kind: t.kind,
-                        label: t.label,
-                        enabled: t.enabled,
-                        readyState: t.readyState
-                    }))
-                });
-                onRemoteStream(stream);
-            }
-        };
-
-        peerConnection.current = pc;
-        return pc;
-    }, [socket, onRemoteStream, setupDataChannel]);
-
     const startScreenShare = useCallback(async (targetId: string) => {
+        if (!peer) return null;
         try {
             let stream: MediaStream;
 
@@ -118,79 +68,66 @@ export function useWebRTC({ socket, onRemoteStream }: UseWebRTCOptions) {
             setLocalStream(stream);
             setIsStreaming(true);
 
-            const pc = createPeerConnection(targetId, true);
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            // Establish data connection for remote control
+            const conn = peer.connect(targetId);
+            setupDataConnection(conn);
 
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            socket?.emit('webrtc:offer', { targetId, offer });
+            // Establish media call
+            const call = peer.call(targetId, stream);
+            mediaConnection.current = call;
 
             return stream;
         } catch (error) {
             console.error('Error starting screen share:', error);
             return null;
         }
-    }, [createPeerConnection, socket]);
+    }, [peer, setupDataConnection]);
 
     const stopStreaming = useCallback(() => {
         localStream?.getTracks().forEach(track => track.stop());
         setLocalStream(null);
         setIsStreaming(false);
-        dataChannel.current?.close();
-        dataChannel.current = null;
-        peerConnection.current?.close();
-        peerConnection.current = null;
+        dataConnection.current?.close();
+        dataConnection.current = null;
+        mediaConnection.current?.close();
+        mediaConnection.current = null;
     }, [localStream]);
 
     const sendInputData = useCallback((payload: any) => {
-        if (dataChannel.current && dataChannel.current.readyState === 'open') {
-            dataChannel.current.send(JSON.stringify({ type: 'input', payload }));
+        if (dataConnection.current && dataConnection.current.open) {
+            dataConnection.current.send({ type: 'input', payload });
         }
     }, []);
 
-    const handleConnectRequest = useCallback(async ({ fromId }: { fromId: string }) => {
-        console.log('Received connection request from:', fromId);
-        await startScreenShare(fromId);
-    }, [startScreenShare]);
-
     useEffect(() => {
-        if (!socket) return;
+        if (!peer) return;
 
-        const handleOffer = async ({ fromId, offer }: { fromId: string, offer: RTCSessionDescriptionInit }) => {
-            const pc = createPeerConnection(fromId, false);
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        // Handle incoming data connections (Remote Control)
+        peer.on('connection', (conn) => {
+            console.log('[PEER] Incoming data connection from:', conn.peer);
+            setupDataConnection(conn);
+        });
 
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
+        // Handle incoming media calls (Display receiver)
+        peer.on('call', (call) => {
+            console.log('[PEER] Incoming call from:', call.peer);
 
-            socket.emit('webrtc:answer', { targetId: fromId, answer });
-        };
+            // For the display, we automatically answer (no audio/video back)
+            call.answer();
 
-        const handleAnswer = async ({ fromId, answer }: { fromId: string, answer: RTCSessionDescriptionInit }) => {
-            await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(answer));
-        };
+            call.on('stream', (remoteStream) => {
+                console.log('[PEER] Received remote stream');
+                onRemoteStream(remoteStream);
+            });
 
-        const handleIceCandidate = async ({ fromId, candidate }: { fromId: string, candidate: RTCIceCandidateInit }) => {
-            try {
-                await peerConnection.current?.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (e) {
-                console.error('Error adding received ice candidate', e);
-            }
-        };
-
-        socket.on('webrtc:offer', handleOffer);
-        socket.on('webrtc:answer', handleAnswer);
-        socket.on('webrtc:ice-candidate', handleIceCandidate);
-        socket.on('webrtc:connect-request', handleConnectRequest);
+            mediaConnection.current = call;
+        });
 
         return () => {
-            socket.off('webrtc:offer', handleOffer);
-            socket.off('webrtc:answer', handleAnswer);
-            socket.off('webrtc:ice-candidate', handleIceCandidate);
-            socket.off('webrtc:connect-request', handleConnectRequest);
+            peer.off('connection');
+            peer.off('call');
         };
-    }, [socket, createPeerConnection, handleConnectRequest]);
+    }, [peer, setupDataConnection, onRemoteStream]);
 
     return {
         startScreenShare,
@@ -200,3 +137,4 @@ export function useWebRTC({ socket, onRemoteStream }: UseWebRTCOptions) {
         isStreaming
     };
 }
+

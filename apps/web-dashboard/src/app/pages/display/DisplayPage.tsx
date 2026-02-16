@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSocket } from '../../hooks/useSocket';
+import { usePeer } from '../../hooks/usePeer';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { StreamPlayer } from '../../components/StreamPlayer';
 import { Monitor, Wifi, Maximize2, RefreshCw, Settings } from 'lucide-react';
@@ -9,11 +9,19 @@ import { Button } from '../../components/ui/button';
 export function DisplayPage() {
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [pairingCode, setPairingCode] = useState<string | null>(null);
-    const [socketId, setSocketId] = useState<string | null>(null);
     const [remoteControlEnabled, setRemoteControlEnabled] = useState(false);
-    const { socket, connected } = useSocket();
+
+    // Generate a code once on mount
+    useEffect(() => {
+        if (!pairingCode) {
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            setPairingCode(code);
+        }
+    }, []);
+
+    const { peer, connected, error } = usePeer(pairingCode || undefined);
     const { isStreaming, sendInputData } = useWebRTC({
-        socket,
+        peer,
         onRemoteStream: (stream) => setRemoteStream(stream)
     });
 
@@ -47,33 +55,10 @@ export function DisplayPage() {
         });
     };
 
-    useEffect(() => {
-        if (connected && socket) {
-            setSocketId(socket.id ?? null);
-            console.log('[DISPLAY] Connected as:', socket.id, '- Requesting pairing code...');
-            socket.emit('pairing:request-code');
-
-            const handleCodeGenerated = ({ code }: { code: string }) => {
-                console.log('[DISPLAY] Received pairing code:', code);
-                setPairingCode(code);
-            };
-
-            socket.on('pairing:code-generated', handleCodeGenerated);
-
-            return () => {
-                socket.off('pairing:code-generated', handleCodeGenerated);
-            };
-        } else {
-            setPairingCode(null);
-            setSocketId(null);
-        }
-    }, [connected, socket]);
-
     const requestNewCode = () => {
-        if (socket && connected) {
-            console.log('[DISPLAY] Manually requesting new code');
-            socket.emit('pairing:request-code');
-        }
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        setPairingCode(code);
+        // Page will re-render and usePeer will re-init with new code
     };
 
     return (
@@ -96,7 +81,7 @@ export function DisplayPage() {
                         </p>
                     </div>
 
-                    {pairingCode ? (
+                    {pairingCode && connected ? (
                         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 backdrop-blur-sm shadow-2xl">
                             <div className="flex justify-center gap-3" dir="ltr">
                                 {pairingCode.split('').map((char, i) => (
@@ -123,14 +108,16 @@ export function DisplayPage() {
                                     </div>
                                 ))}
                             </div>
-                            <p className="text-yellow-500 text-xs mt-6 uppercase tracking-widest font-semibold">CONNECTING TO SERVER...</p>
+                            <p className="text-yellow-500 text-xs mt-6 uppercase tracking-widest font-semibold">
+                                {error === 'id-taken' ? 'CODE ALREADY IN USE, RETRYING...' : 'CONNECTING TO PEER NETWORK...'}
+                            </p>
                         </div>
                     )}
 
                     <div className="flex items-center justify-center gap-4">
                         <Badge variant="outline" className={`${connected ? 'border-emerald-500/50 text-emerald-400' : 'border-red-500/50 text-red-400'} bg-slate-900/50`}>
                             <Wifi className="w-3.5 h-3.5 mr-2" />
-                            {connected ? 'CONNECTED' : 'DISCONNECTED'}
+                            {connected ? 'PEER CONNECTED' : 'DISCONNECTED'}
                         </Badge>
                         <Badge variant="outline" className="border-slate-700 text-slate-400 bg-slate-900/50">
                             <Maximize2 className="w-3.5 h-3.5 mr-2" />
@@ -138,12 +125,13 @@ export function DisplayPage() {
                         </Badge>
                     </div>
 
-                    {/* Debug info - socket ID for cross-referencing with server */}
-                    {socketId && (
+                    {/* Peer ID for debugging */}
+                    {peer?.id && (
                         <p className="text-slate-700 text-[10px] font-mono">
-                            Socket: {socketId}
+                            Peer ID: {peer.id}
                         </p>
                     )}
+
 
                     <div className="pt-4">
                         <div className="flex gap-1 justify-center">

@@ -3,7 +3,7 @@ import { Scan, Plus, Wifi, WifiOff, Monitor, RefreshCw } from 'lucide-react';
 import { DeviceCard, DeviceType, DeviceStatus } from '../../components/DeviceCard';
 import { ConnectionModal, ConnectionSettings } from '../../components/ConnectionModal';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useSocket, Device as RealDevice } from '../../hooks/useSocket';
+import { usePeer } from '../../hooks/usePeer';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { StreamPlayer } from '../../components/StreamPlayer';
 import { Button } from '../../components/ui/button';
@@ -24,9 +24,9 @@ interface Device {
 export function Devices() {
   const { t } = useTranslation();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const { devices: socketDevices, connected, socket } = useSocket();
+  const { peer, connected } = usePeer();
   const { startScreenShare, stopStreaming, isStreaming } = useWebRTC({
-    socket,
+    peer,
     onRemoteStream: (stream) => setRemoteStream(stream)
   });
 
@@ -42,87 +42,45 @@ export function Devices() {
   const [virtualDisplayActive, setVirtualDisplayActive] = useState(false);
   const [isVirtualDisplayLoading, setIsVirtualDisplayLoading] = useState(false);
 
+  // PeerJS logic for pairing
   const onPairingVerify = useCallback((code: string) => {
-    console.log('[DASHBOARD] onPairingVerify called with code:', code);
-    if (socket && socket.connected) {
-      socket.emit('pairing:verify', { code });
-      toast.loading('Verifying pairing code...');
-    } else {
-      toast.error('Not connected to server. Please refresh the page.');
+    console.log('[DASHBOARD] Attempting direct Peer connection to code:', code);
+    if (!connected) {
+      toast.error('Not connected to peer network. Please wait.');
+      return;
     }
-  }, [socket]);
 
-  useEffect(() => {
-    if (!socket) return;
+    // In PeerJS, the code is the ID. We'll set it as target and let the user click "Become Host"
+    // or we could auto-start sharing.
+    setPairedTargetId(code);
+    setShowPairingModal(false);
+    toast.success('Ready to share! Click "Become Host" to start.');
+  }, [connected]);
 
-    const handlePairingSuccess = ({ targetId }: { targetId: string }) => {
-      toast.success('Pairing successful! Click "Become Host" to start streaming.');
-      setPairedTargetId(targetId);
-      setShowPairingModal(false);
-    };
-
-    const handlePairingError = ({ message }: { message: string }) => {
-      toast.error(message);
-    };
-
-    socket.on('pairing:success', handlePairingSuccess);
-    socket.on('pairing:error', handlePairingError);
-
-    return () => {
-      socket.off('pairing:success', handlePairingSuccess);
-      socket.off('pairing:error', handlePairingError);
-    };
-  }, [socket]);
 
   const allDevices = useMemo(() => {
-    const otherDevices = socketDevices.filter(d => d.id !== socket?.id);
-    return otherDevices.map(d => ({
-      id: d.id,
-      name: d.name,
-      type: d.type as DeviceType,
-      status: d.status as DeviceStatus,
-      resolution: d.resolution
-    }));
-  }, [socketDevices, socket?.id]);
+    // For now, PeerJS discovery is limited to pairing codes.
+    return [] as Device[];
+  }, []);
 
   const handleScan = () => {
-    if (scanning) return;
-    setScanning(true);
-    toast.info('Refreshing device list...');
-    socket?.emit('device:request-list');
-    setTimeout(() => {
-      setScanning(false);
-      toast.success(`Scan complete! Found ${allDevices.length} devices.`);
-    }, 1500);
+    toast.info('Discovery in this mode requires a Pairing Code.');
   };
 
-  const handleConnect = (device: RealDevice) => {
-    setSelectedDevice({
-      id: device.id,
-      name: device.name,
-      type: device.type as DeviceType,
-      status: device.status as DeviceStatus,
-      resolution: device.resolution
-    });
-    setShowConnectionModal(true);
+  const handleConnect = (device: Device) => {
+    // Direct connection by clicking a card will require service discovery
+    toast.info('Please use "Connect with Code"');
   };
 
   const handleConfirmConnection = (settings: ConnectionSettings) => {
     if (selectedDevice) {
-      socket?.emit('webrtc:connect-request', {
-        targetId: selectedDevice.id,
-        settings
-      });
-      toast.info(`Requesting connection to ${selectedDevice.name}...`);
+      toast.info(`Attempting connection to ${selectedDevice.name}...`);
       setShowConnectionModal(false);
     }
   };
 
   const handleDisconnect = (id: string) => {
-    const device = allDevices.find(d => d.id === id);
-    if (device) {
-      toast.success(`Disconnected from ${device.name}`);
-    }
+    toast.success(`Disconnected from device`);
   };
 
   const handleToggleVirtualDisplay = async () => {
