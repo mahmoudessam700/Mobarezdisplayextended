@@ -13,6 +13,25 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
     const dataConnection = useRef<DataConnection | null>(null);
     const mediaConnection = useRef<MediaConnection | null>(null);
 
+    // Bridge remote-input events to Electron IPC if running in desktop app
+    useEffect(() => {
+        const handleRemoteInput = (e: any) => {
+            const data = e.detail;
+            // @ts-ignore
+            const isElectron = window.process?.versions?.electron || (window.require && window.require('electron'));
+            if (isElectron) {
+                // @ts-ignore
+                const ipc = (window as any).ipcRenderer || (window.require && window.require('electron').ipcRenderer);
+                if (ipc) {
+                    ipc.send('simulate-input', data);
+                }
+            }
+        };
+
+        window.addEventListener('remote-input', handleRemoteInput);
+        return () => window.removeEventListener('remote-input', handleRemoteInput);
+    }, []);
+
     const setupDataConnection = useCallback((conn: DataConnection) => {
         conn.on('open', () => console.log('[PEER] Data Connection Open'));
         conn.on('data', (data: any) => {

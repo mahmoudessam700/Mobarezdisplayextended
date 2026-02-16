@@ -61,11 +61,31 @@ function createWindow() {
         if (data.type === 'mousemove') {
             const absX = Math.round(data.x * width);
             const absY = Math.round(data.y * height);
-
-            // Fast mouse move using AppleScript
             exec(`osascript -e 'tell application "System Events" to set the position of the pointer to {${absX}, ${absY}}'`);
         } else if (data.type === 'mousedown') {
+            // Simplified: Treat mousedown as a click for now given AppleScript limitations
             exec(`osascript -e 'tell application "System Events" to click'`);
+        } else if (data.type === 'keydown') {
+            const key = data.key;
+            // Escape double quotes for shell
+            const escapedKey = key.replace(/"/g, '\\"');
+            if (key.length === 1) {
+                // Regular character
+                exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`);
+            } else {
+                // Special key (Enter, Escape, etc.)
+                const keyMap = {
+                    'Enter': 'return',
+                    'Escape': 'escape',
+                    'Tab': 'tab',
+                    'Backspace': 'delete',
+                };
+                const mappedKey = keyMap[key] || key.toLowerCase();
+                exec(`osascript -e 'tell application "System Events" to key code ${mappedKey}'`).catch(() => {
+                    // Fallback to keystroke if key code fails or is unknown
+                    exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`);
+                });
+            }
         }
     });
 
