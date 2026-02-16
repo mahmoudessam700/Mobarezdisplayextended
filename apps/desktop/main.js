@@ -53,7 +53,11 @@ function createWindow() {
     const fs = require('fs');
 
     ipcMain.on('simulate-input', (event, data) => {
-        if (process.platform !== 'darwin') return;
+        console.log('[ELECTRON-IPC] Received simulate-input:', data.type);
+        if (process.platform !== 'darwin') {
+            console.warn('[ELECTRON-IPC] Input simulation only supported on macOS');
+            return;
+        }
 
         const primaryDisplay = screen.getPrimaryDisplay();
         const { width, height } = primaryDisplay.size;
@@ -61,17 +65,25 @@ function createWindow() {
         if (data.type === 'mousemove') {
             const absX = Math.round(data.x * width);
             const absY = Math.round(data.y * height);
-            exec(`osascript -e 'tell application "System Events" to set the position of the pointer to {${absX}, ${absY}}'`);
+            console.log(`[ELECTRON-IPC] moving to: ${absX}, ${absY}`);
+            exec(`osascript -e 'tell application "System Events" to set the position of the pointer to {${absX}, ${absY}}'`, (err) => {
+                if (err) console.error('[ELECTRON-IPC] Mouse move error:', err);
+            });
         } else if (data.type === 'mousedown') {
-            // Simplified: Treat mousedown as a click for now given AppleScript limitations
-            exec(`osascript -e 'tell application "System Events" to click'`);
+            console.log('[ELECTRON-IPC] clicking');
+            exec(`osascript -e 'tell application "System Events" to click'`, (err) => {
+                if (err) console.error('[ELECTRON-IPC] Click error:', err);
+            });
         } else if (data.type === 'keydown') {
+            console.log('[ELECTRON-IPC] keydown:', data.key);
             const key = data.key;
             // Escape double quotes for shell
             const escapedKey = key.replace(/"/g, '\\"');
             if (key.length === 1) {
                 // Regular character
-                exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`);
+                exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`, (err) => {
+                    if (err) console.error('[ELECTRON-IPC] Keystroke error:', err);
+                });
             } else {
                 // Special key (Enter, Escape, etc.)
                 const keyMap = {
@@ -81,9 +93,11 @@ function createWindow() {
                     'Backspace': 'delete',
                 };
                 const mappedKey = keyMap[key] || key.toLowerCase();
-                exec(`osascript -e 'tell application "System Events" to key code ${mappedKey}'`).catch(() => {
-                    // Fallback to keystroke if key code fails or is unknown
-                    exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`);
+                exec(`osascript -e 'tell application "System Events" to key code ${mappedKey}'`, (err) => {
+                    if (err) {
+                        console.warn('[ELECTRON-IPC] Key code failing, falling back to keystroke');
+                        exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`);
+                    }
                 });
             }
         }

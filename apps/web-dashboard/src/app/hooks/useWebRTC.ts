@@ -17,6 +17,7 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
     useEffect(() => {
         const handleRemoteInput = (e: any) => {
             const data = e.detail;
+            console.log('[WEBRTC-BRIDGE] Bridging remote input to IPC:', data);
             // @ts-ignore
             const isElectron = window.process?.versions?.electron || (window.require && window.require('electron'));
             if (isElectron) {
@@ -24,7 +25,11 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
                 const ipc = (window as any).ipcRenderer || (window.require && window.require('electron').ipcRenderer);
                 if (ipc) {
                     ipc.send('simulate-input', data);
+                } else {
+                    console.warn('[WEBRTC-BRIDGE] IPC not found even though isElectron is true');
                 }
+            } else {
+                console.log('[WEBRTC-BRIDGE] Not in Electron, skipping IPC send');
             }
         };
 
@@ -35,8 +40,9 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
     const setupDataConnection = useCallback((conn: DataConnection) => {
         conn.on('open', () => console.log('[PEER] Data Connection Open'));
         conn.on('data', (data: any) => {
-            console.log('[PEER] Received Data:', data);
+            console.log('[PEER-DATA] Received:', data);
             if (data.type === 'input') {
+                console.log('[PEER-DATA] Dispatching remote-input event');
                 window.dispatchEvent(new CustomEvent('remote-input', { detail: data.payload }));
             }
         });
@@ -114,7 +120,13 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
 
     const sendInputData = useCallback((payload: any) => {
         if (dataConnection.current && dataConnection.current.open) {
+            console.log('[PEER-DATA] Sending:', payload);
             dataConnection.current.send({ type: 'input', payload });
+        } else {
+            console.warn('[PEER-DATA] Cannot send, connection not open. State:', {
+                exists: !!dataConnection.current,
+                open: dataConnection.current?.open
+            });
         }
     }, []);
 
