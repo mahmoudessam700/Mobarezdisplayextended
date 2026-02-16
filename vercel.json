@@ -1,6 +1,5 @@
 {
     "version": 2,
-    "projectId": "prj_4GCEODEAowJwyHutjyxVMFcwUwqd",
     "builds": [
         {
             "src": "apps/web-dashboard/package.json",
