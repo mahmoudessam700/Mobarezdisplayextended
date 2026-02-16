@@ -205,6 +205,15 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
             });
 
             mediaConnection.current = call;
+
+            // Proactively create a data connection back to the caller.
+            // This ensures the data channel works even if the HOST's
+            // outgoing peer.connect() event is lost by the signaling server.
+            if (!dataConnection.current || !dataConnection.current.open) {
+                console.log('[PEER] Proactively creating data connection back to:', call.peer);
+                const conn = peer.connect(call.peer);
+                setupDataConnection(conn);
+            }
         });
 
         return () => {
