@@ -3,6 +3,8 @@ const path = require('path');
 const isDev = require('electron-is-dev');
 const os = require('os');
 
+let virtualDisplayProcess = null;
+
 function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 1280,
@@ -47,7 +49,8 @@ function createWindow() {
 
     // Remote Input Simulation
     const { screen } = require('electron');
-    const { exec } = require('child_process');
+    const { exec, spawn } = require('child_process');
+    const fs = require('fs');
 
     ipcMain.on('simulate-input', (event, data) => {
         if (process.platform !== 'darwin') return;
@@ -60,13 +63,54 @@ function createWindow() {
             const absY = Math.round(data.y * height);
 
             // Fast mouse move using AppleScript
-            const script = `tell application "System Events" to set the position of the pointer to {${absX}, ${absY}}`;
-            // Note: position of pointer requires macOS 11+ or specific accessibility tools.
-            // Alternative: use clclick if we can, or a simpler osascript for clicks
-            exec(`osascript -e 'tell application "System Events" to click at {${absX}, ${absY}}'`);
+            exec(`osascript -e 'tell application "System Events" to set the position of the pointer to {${absX}, ${absY}}'`);
         } else if (data.type === 'mousedown') {
-            // Simplified: click at current or specific location
-            // For full drag support, native modules like robotjs are better, but osascript works for clicks
+            exec(`osascript -e 'tell application "System Events" to click'`);
+        }
+    });
+
+    ipcMain.handle('virtual-display:toggle', async (event, enabled) => {
+        if (process.platform !== 'darwin') return { success: false, message: 'Only supported on macOS' };
+
+        if (enabled) {
+            if (virtualDisplayProcess) return { success: true };
+
+            const swiftFile = path.join(__dirname, 'virtual_display_helper.swift');
+            const binaryFile = path.join(__dirname, 'virtual_display_helper');
+
+            return new Promise((resolve) => {
+                // Compile on the fly
+                exec(`swiftc "${swiftFile}" -o "${binaryFile}"`, (error) => {
+                    if (error) {
+                        console.error('[ELECTRON] Swift compilation failed:', error);
+                        return resolve({ success: false, message: 'Compilation failed' });
+                    }
+
+                    console.log('[ELECTRON] Swift helper compiled. Starting...');
+                    virtualDisplayProcess = spawn(binaryFile);
+
+                    virtualDisplayProcess.stdout.on('data', (data) => {
+                        console.log(`[SWIFT] ${data}`);
+                    });
+
+                    virtualDisplayProcess.on('error', (err) => {
+                        console.error('[ELECTRON] Virtual display process error:', err);
+                    });
+
+                    virtualDisplayProcess.on('close', (code) => {
+                        console.log(`[ELECTRON] Virtual display process exited with code ${code}`);
+                        virtualDisplayProcess = null;
+                    });
+
+                    resolve({ success: true });
+                });
+            });
+        } else {
+            if (virtualDisplayProcess) {
+                virtualDisplayProcess.kill();
+                virtualDisplayProcess = null;
+            }
+            return { success: true };
         }
     });
 }
@@ -76,6 +120,13 @@ app.whenReady().then(() => {
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+
+    // Cleanup on exit
+    app.on('will-quit', () => {
+        if (virtualDisplayProcess) {
+            virtualDisplayProcess.kill();
+        }
     });
 });
 
