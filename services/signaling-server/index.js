@@ -1,10 +1,16 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
+
+// Serve the built web dashboard in production
+const DASHBOARD_DIST = path.join(__dirname, '../../apps/web-dashboard/dist');
+app.use(express.static(DASHBOARD_DIST));
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -14,7 +20,7 @@ const io = new Server(server, {
     }
 });
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 // In-memory registries (Global Scope)
 let devices = new Map();
@@ -119,6 +125,12 @@ io.on('connection', (socket) => {
     });
 });
 
+// SPA fallback: serve index.html for any non-API, non-socket route
+app.get('*', (req, res) => {
+    res.sendFile(path.join(DASHBOARD_DIST, 'index.html'));
+});
+
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`[SERVER] Signaling server running on http://0.0.0.0:${PORT}`);
+    console.log(`[SERVER] Dashboard served from: ${DASHBOARD_DIST}`);
 });

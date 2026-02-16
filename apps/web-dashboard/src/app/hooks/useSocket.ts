@@ -9,9 +9,10 @@ export interface Device {
     resolution: string;
 }
 
-const SOCKET_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:4000'
-    : `http://${window.location.hostname}:4000`;
+// Signaling server URL: use VITE_SIGNALING_URL env var if set,
+// otherwise auto-detect from the current host (for production/online mode)
+const SOCKET_URL = import.meta.env.VITE_SIGNALING_URL
+    || `${window.location.protocol}//${window.location.hostname}:4000`;
 
 // Singleton socket instance to prevent duplicate connections
 let globalSocket: Socket | null = null;
