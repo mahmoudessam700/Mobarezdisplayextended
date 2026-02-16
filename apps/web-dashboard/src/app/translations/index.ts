@@ -7,6 +7,7 @@ export const translations = {
     pricing: 'Pricing',
     download: 'Download',
     dashboard: 'Dashboard',
+    joinAsDisplay: 'Join as Display',
 
     // Hero Section
     heroTitle: 'Extend Your Screen',
@@ -449,6 +450,7 @@ export const translations = {
     pricing: 'الأسعار',
     download: 'تنزيل',
     dashboard: 'لوحة التحكم',
+    joinAsDisplay: 'انضم كشاشة عرض',
 
     // Hero Section
     heroTitle: 'وسّع شاشتك',

@@ -36,6 +36,7 @@ export function Navbar() {
     { label: t('howItWorks'), path: '/#how-it-works', icon: SettingsIcon },
     { label: t('pricing'), path: '/#pricing', icon: DollarSign },
     { label: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
+    { label: t('joinAsDisplay'), path: '/display', icon: Monitor },
   ];
 
   const isActive = (path: string) => {
@@ -46,7 +47,7 @@ export function Navbar() {
 
   const handleNavClick = (path: string) => {
     setMobileMenuOpen(false);
-    
+
     // Handle hash links
     if (path.startsWith('/#')) {
       const hash = path.substring(2);
@@ -86,11 +87,10 @@ export function Navbar() {
                 <button
                   key={item.path}
                   onClick={() => handleNavClick(item.path)}
-                  className={`flex items-center gap-1.5 text-sm xl:text-base transition-colors cursor-pointer ${
-                    isActive(item.path)
+                  className={`flex items-center gap-1.5 text-sm xl:text-base transition-colors cursor-pointer ${isActive(item.path)
                       ? 'text-blue-500'
                       : 'text-slate-600 dark:text-slate-300 hover:text-blue-500'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
@@ -99,11 +99,10 @@ export function Navbar() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-1.5 text-sm xl:text-base transition-colors ${
-                    isActive(item.path)
+                  className={`flex items-center gap-1.5 text-sm xl:text-base transition-colors ${isActive(item.path)
                       ? 'text-blue-500'
                       : 'text-slate-600 dark:text-slate-300 hover:text-blue-500'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
@@ -118,20 +117,20 @@ export function Navbar() {
               <LanguageToggle />
             </div>
             <ThemeToggle />
-            
+
             {isAuthenticated ? (
               <>
-                <Button 
+                <Button
                   size="sm"
-                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4" 
+                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4"
                   onClick={handleDownload}
                 >
                   {t('download')}
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
-                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4" 
+                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4"
                   onClick={handleLogout}
                 >
                   Logout
@@ -139,24 +138,24 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Button 
+                <Button
                   size="sm"
-                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4" 
+                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4"
                   onClick={handleDownload}
                 >
                   {t('download')}
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
-                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4" 
+                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4"
                   onClick={() => navigate('/login')}
                 >
                   Login
                 </Button>
-                <Button 
+                <Button
                   size="sm"
-                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4" 
+                  className="hidden lg:inline-flex text-xs xl:text-sm px-3 xl:px-4"
                   onClick={() => navigate('/register')}
                 >
                   Sign Up
@@ -178,46 +177,44 @@ export function Navbar() {
         {mobileMenuOpen && (
           <div className="lg:hidden py-4 border-t">
             <div className="flex flex-col gap-2 sm:gap-3">{navItems.map((item) => {
-                const Icon = item.icon;
-                return item.path.startsWith('/#') ? (
-                  <button
-                    key={item.path}
-                    onClick={() => handleNavClick(item.path)}
-                    className={`flex items-center gap-2.5 px-3 sm:px-4 py-2 rounded-lg transition-colors text-left text-sm sm:text-base ${
-                      isActive(item.path)
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              const Icon = item.icon;
+              return item.path.startsWith('/#') ? (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavClick(item.path)}
+                  className={`flex items-center gap-2.5 px-3 sm:px-4 py-2 rounded-lg transition-colors text-left text-sm sm:text-base ${isActive(item.path)
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </button>
-                ) : (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2.5 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${
-                      isActive(item.path)
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              ) : (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-2.5 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${isActive(item.path)
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-              
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+
               <div className="border-t pt-3 mt-2 mx-3 sm:mx-4 space-y-2">
                 <Button className="w-full text-sm sm:text-base" onClick={handleDownload}>
                   {t('download')}
                 </Button>
-                
+
                 {isAuthenticated ? (
-                  <Button 
-                    variant="outline" 
-                    className="w-full text-sm sm:text-base" 
+                  <Button
+                    variant="outline"
+                    className="w-full text-sm sm:text-base"
                     onClick={() => {
                       handleLogout();
                       setMobileMenuOpen(false);
@@ -227,9 +224,9 @@ export function Navbar() {
                   </Button>
                 ) : (
                   <>
-                    <Button 
-                      variant="outline" 
-                      className="w-full text-sm sm:text-base" 
+                    <Button
+                      variant="outline"
+                      className="w-full text-sm sm:text-base"
                       onClick={() => {
                         navigate('/login');
                         setMobileMenuOpen(false);
@@ -237,8 +234,8 @@ export function Navbar() {
                     >
                       Login
                     </Button>
-                    <Button 
-                      className="w-full text-sm sm:text-base" 
+                    <Button
+                      className="w-full text-sm sm:text-base"
                       onClick={() => {
                         navigate('/register');
                         setMobileMenuOpen(false);
