@@ -22,11 +22,19 @@ if (fs.existsSync(DASHBOARD_DIST)) {
 }
 
 const server = http.createServer(app);
+
+// Allow connections from Vercel frontend, localhost dev, and any other origin
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['*'];
+
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: ALLOWED_ORIGINS.includes('*') ? '*' : ALLOWED_ORIGINS,
         methods: ["GET", "POST"]
-    }
+    },
+    // Ensure WebSocket transport works on managed hosting
+    transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 4000;
@@ -134,12 +142,14 @@ io.on('connection', (socket) => {
     });
 });
 
-// SPA fallback: serve index.html for any non-API, non-socket route
-app.get('*', (req, res) => {
-    res.sendFile(path.join(DASHBOARD_DIST, 'index.html'));
-});
+// SPA fallback: serve index.html for any non-API, non-socket route (only if dashboard is present)
+if (fs.existsSync(path.join(DASHBOARD_DIST, 'index.html'))) {
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(DASHBOARD_DIST, 'index.html'));
+    });
+}
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`[SERVER] Signaling server running on http://0.0.0.0:${PORT}`);
-    console.log(`[SERVER] Dashboard served from: ${DASHBOARD_DIST}`);
+    console.log(`[SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
 });

@@ -1,0 +1,19 @@
+# Render Blueprint — Auto-configures the signaling server on Render.com
+# To deploy: Go to https://render.com/deploy and connect your GitHub repo.
+# Render will read this file and configure everything automatically.
+
+services:
+  - type: web
+    name: mobarez-signaling-server
+    runtime: node
+    region: ohio
+    rootDir: services/signaling-server
+    buildCommand: npm install
+    startCommand: node index.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /health
