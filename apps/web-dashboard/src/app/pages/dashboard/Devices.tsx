@@ -25,7 +25,7 @@ export function Devices() {
   const { t } = useTranslation();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const { peer, connected } = usePeer();
-  const { startScreenShare, stopStreaming, isStreaming } = useWebRTC({
+  const { startScreenShare, stopStreaming, isStreaming, remoteCursorPos, remoteClickEffect } = useWebRTC({
     peer,
     onRemoteStream: (stream) => setRemoteStream(stream)
   });
@@ -178,11 +178,33 @@ export function Devices() {
             <h2 className="text-xl sm:text-2xl font-semibold">Remote Display</h2>
             <Button variant="ghost" onClick={() => setRemoteStream(null)}>Close Stream</Button>
           </div>
-          <StreamPlayer
-            stream={remoteStream}
-            deviceName={allDevices.find(d => d.status === 'connected')?.name || 'Remote Device'}
-            onClose={() => setRemoteStream(null)}
-          />
+          <div className="relative">
+            <StreamPlayer
+              stream={remoteStream}
+              deviceName={allDevices.find(d => d.status === 'connected')?.name || 'Remote Device'}
+              onClose={() => setRemoteStream(null)}
+            />
+            {/* Remote cursor overlay — shows where the remote user is pointing/clicking */}
+            {remoteCursorPos && (
+              <div
+                className="absolute pointer-events-none z-50"
+                style={{
+                  left: `${remoteCursorPos.x * 100}%`,
+                  top: `${remoteCursorPos.y * 100}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                {/* Cursor dot */}
+                <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-lg shadow-blue-500/50" />
+                {/* Click ripple effect */}
+                <div
+                  key={remoteClickEffect}
+                  className="absolute inset-0 w-8 h-8 -ml-2 -mt-2 rounded-full border-2 border-blue-400 animate-ping opacity-75"
+                  style={{ animationDuration: '0.6s', animationIterationCount: 1 }}
+                />
+              </div>
+            )}
+          </div>
         </motion.div>
       )}
 

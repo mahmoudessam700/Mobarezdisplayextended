@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePeer } from '../../hooks/usePeer';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { StreamPlayer } from '../../components/StreamPlayer';
@@ -25,8 +25,14 @@ export function DisplayPage() {
         onRemoteStream: (stream) => setRemoteStream(stream)
     });
 
+    const lastMouseSendRef = useRef(0);
+    const MOUSE_THROTTLE_MS = 50; // Send at most 20 mousemove events per second
+
     const handleMouseMove = (e: React.MouseEvent<HTMLVideoElement>) => {
         if (!remoteControlEnabled || !sendInputData) return;
+        const now = Date.now();
+        if (now - lastMouseSendRef.current < MOUSE_THROTTLE_MS) return;
+        lastMouseSendRef.current = now;
         const rect = e.currentTarget.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width;
         const y = (e.clientY - rect.top) / rect.height;

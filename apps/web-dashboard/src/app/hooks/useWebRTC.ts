@@ -4,21 +4,36 @@ import type { Peer, DataConnection, MediaConnection } from 'peerjs';
 interface UseWebRTCOptions {
     peer: Peer | null;
     onRemoteStream: (stream: MediaStream) => void;
+    onRemoteInput?: (data: any) => void;
 }
 
-export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
+export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOptions) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
     const [dataChannelReady, setDataChannelReady] = useState(false);
+    const [remoteCursorPos, setRemoteCursorPos] = useState<{ x: number; y: number } | null>(null);
+    const [remoteClickEffect, setRemoteClickEffect] = useState(0);
 
     const dataConnection = useRef<DataConnection | null>(null);
     const mediaConnection = useRef<MediaConnection | null>(null);
+    const onRemoteInputRef = useRef(onRemoteInput);
 
-    // Bridge remote-input events to Electron IPC if running in desktop app
+    // Keep onRemoteInput ref up to date
+    useEffect(() => {
+        onRemoteInputRef.current = onRemoteInput;
+    }, [onRemoteInput]);
+
+    // Bridge remote-input events to Electron IPC or handle in-browser
     useEffect(() => {
         const handleRemoteInput = (e: any) => {
             const data = e.detail;
-            console.log('[WEBRTC-BRIDGE] Bridging remote input to IPC:', data);
+            console.log('[WEBRTC-BRIDGE] Received remote input:', data?.type);
+
+            // Notify callback if provided
+            if (onRemoteInputRef.current) {
+                onRemoteInputRef.current(data);
+            }
+
             // @ts-ignore
             const isElectron = window.process?.versions?.electron || (window.require && window.require('electron'));
             if (isElectron) {
@@ -30,7 +45,19 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
                     console.warn('[WEBRTC-BRIDGE] IPC not found even though isElectron is true');
                 }
             } else {
-                console.log('[WEBRTC-BRIDGE] Not in Electron, skipping IPC send');
+                // Web-only mode: track remote cursor position for visual overlay
+                if (data?.type === 'mousemove') {
+                    setRemoteCursorPos({ x: data.x, y: data.y });
+                } else if (data?.type === 'mousedown') {
+                    if (data.x !== undefined && data.y !== undefined) {
+                        setRemoteCursorPos({ x: data.x, y: data.y });
+                    }
+                    setRemoteClickEffect(prev => prev + 1);
+                } else if (data?.type === 'mouseup') {
+                    if (data.x !== undefined && data.y !== undefined) {
+                        setRemoteCursorPos({ x: data.x, y: data.y });
+                    }
+                }
             }
         };
 
@@ -183,7 +210,8 @@ export function useWebRTC({ peer, onRemoteStream }: UseWebRTCOptions) {
         sendInputData,
         localStream,
         isStreaming,
-        dataChannelReady
+        dataChannelReady,
+        remoteCursorPos,
+        remoteClickEffect
     };
 }
-
