@@ -1,22 +1,9 @@
 {
-    "version": 2,
-    "builds": [
-        {
-            "src": "package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "apps/web-dashboard/dist"
-            }
-        }
-    ],
+    "outputDirectory": "apps/web-dashboard/dist",
     "rewrites": [
         {
-            "source": "/assets/(.*)",
-            "destination": "apps/web-dashboard/dist/assets/$1"
-        },
-        {
             "source": "/(.*)",
-            "destination": "apps/web-dashboard/dist/index.html"
+            "destination": "/index.html"
         }
     ]
 }
