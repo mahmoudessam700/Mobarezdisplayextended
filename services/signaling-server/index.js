@@ -8,9 +8,18 @@ const path = require('path');
 const app = express();
 app.use(cors());
 
-// Serve the built web dashboard in production
-const DASHBOARD_DIST = path.join(__dirname, '../../apps/web-dashboard/dist');
-app.use(express.static(DASHBOARD_DIST));
+// Health check for hosting platforms
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
+// Serve the built web dashboard in production (optional if hosted separately like on Vercel)
+const DASHBOARD_DIST = process.env.DASHBOARD_DIST || path.join(__dirname, '../../apps/web-dashboard/dist');
+const fs = require('fs');
+if (fs.existsSync(DASHBOARD_DIST)) {
+    console.log(`[SERVER] Serving static dashboard from: ${DASHBOARD_DIST}`);
+    app.use(express.static(DASHBOARD_DIST));
+} else {
+    console.warn(`[SERVER] Static dashboard folder NOT FOUND at: ${DASHBOARD_DIST}. Skipping static serve (ok if using Vercel).`);
+}
 
 const server = http.createServer(app);
 const io = new Server(server, {

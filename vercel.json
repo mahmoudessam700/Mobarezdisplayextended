@@ -1,0 +1,23 @@
+{
+    "version": 2,
+    "projectId": "prj_4GCEODEAowJwyHutjyxVMFcwUwqd",
+    "builds": [
+        {
+            "src": "apps/web-dashboard/package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "dist"
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/assets/(.*)",
+            "dest": "/apps/web-dashboard/dist/assets/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/apps/web-dashboard/dist/index.html"
+        }
+    ]
+}

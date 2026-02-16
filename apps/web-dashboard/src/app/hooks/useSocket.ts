@@ -9,10 +9,20 @@ export interface Device {
     resolution: string;
 }
 
-// Signaling server URL: use VITE_SIGNALING_URL env var if set,
-// otherwise auto-detect from the current host (for production/online mode)
-const SOCKET_URL = import.meta.env.VITE_SIGNALING_URL
-    || `${window.location.protocol}//${window.location.hostname}:4000`;
+const getSocketUrl = () => {
+    const env = (import.meta as any).env;
+    if (env && env.VITE_SIGNALING_URL) return env.VITE_SIGNALING_URL;
+
+    // Auto-detect based on current location
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    // If we're on a real domain (not localhost) and no env var is set, 
+    // it's unlikely port 4000 on the same domain will work without a reverse proxy.
+    // However, we keep the default for now but log it clearly.
+    return `${protocol}//${window.location.hostname}:4000`;
+};
+
+const SOCKET_URL = getSocketUrl();
+console.log('[SOCKET] Attempting to connect to signaling server at:', SOCKET_URL);
 
 // Singleton socket instance to prevent duplicate connections
 let globalSocket: Socket | null = null;
