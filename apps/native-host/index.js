@@ -75,13 +75,15 @@ function simulateInput(data) {
         } else if (data.type === 'mousedown') {
             const absX = data.x !== undefined ? Math.round(data.x * width) : robot.getMousePos().x;
             const absY = data.y !== undefined ? Math.round(data.y * height) : robot.getMousePos().y;
+            const button = data.button === 2 ? 'right' : data.button === 1 ? 'middle' : 'left';
             robot.moveMouse(absX, absY);
-            robot.mouseToggle('down');
+            robot.mouseToggle('down', button);
         } else if (data.type === 'mouseup') {
             const absX = data.x !== undefined ? Math.round(data.x * width) : robot.getMousePos().x;
             const absY = data.y !== undefined ? Math.round(data.y * height) : robot.getMousePos().y;
+            const button = data.button === 2 ? 'right' : data.button === 1 ? 'middle' : 'left';
             robot.moveMouse(absX, absY);
-            robot.mouseToggle('up');
+            robot.mouseToggle('up', button);
         } else if (data.type === 'keydown') {
             const key = data.key;
 
@@ -124,6 +126,9 @@ function simulateInput(data) {
             } else {
                 robot.keyTap(robotKey);
             }
+        } else if (data.type === 'scroll') {
+            // robotjs.scrollMouse(x, y) where y is vertical, x is horizontal
+            robot.scrollMouse(Math.round(data.deltaX || 0), Math.round(data.deltaY || 0));
         }
 
         return { success: true };

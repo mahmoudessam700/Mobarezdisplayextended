@@ -31,7 +31,12 @@ chrome.runtime.sendMessage({ type: 'check-native-host' }, (response) => {
 // Listen for input simulation requests from the page
 window.addEventListener('displayextended-simulate-input', (event) => {
     const inputData = event.detail;
-    console.log('[DisplayExtended Extension] Simulating input:', inputData.type);
+    if (!inputData) return;
+
+    // Low-frequency logging for mousemove, high-frequency for others
+    if (inputData.type !== 'mousemove') {
+        console.log('[DisplayExtended Extension] 🖱️ Simulating input:', inputData.type, inputData);
+    }
 
     // Forward to background script
     chrome.runtime.sendMessage({
@@ -39,9 +44,12 @@ window.addEventListener('displayextended-simulate-input', (event) => {
         payload: inputData
     }, (response) => {
         if (response && response.success) {
-            console.log('[DisplayExtended Extension] Input simulated successfully');
+            // Only log errors or important events to avoid console spam
+            if (inputData.type !== 'mousemove') {
+                console.log('[DisplayExtended Extension] ✅ Simulated:', inputData.type);
+            }
         } else {
-            console.error('[DisplayExtended Extension] Failed to simulate input:', response?.error);
+            console.error('[DisplayExtended Extension] ❌ Failed to simulate:', inputData.type, response?.error);
         }
     });
 });

@@ -66,6 +66,15 @@ export function DisplayPage() {
         sendInputData({ type: 'mouseup', button: e.button, x, y });
     };
 
+    const handleWheel = (e: React.WheelEvent<HTMLVideoElement>) => {
+        if (!remoteControlEnabled || !sendInputData) return;
+        sendInputData({
+            type: 'scroll',
+            deltaX: e.deltaX,
+            deltaY: e.deltaY
+        });
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (!remoteControlEnabled || !sendInputData) return;
         sendInputData({
@@ -210,6 +219,7 @@ export function DisplayPage() {
                             onMouseMove={handleMouseMove}
                             onMouseDown={handleMouseDown}
                             onMouseUp={handleMouseUp}
+                            onWheel={handleWheel}
                         />
                     </div>
                 </div>

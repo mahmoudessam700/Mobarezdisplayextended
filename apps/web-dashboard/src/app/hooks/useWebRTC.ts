@@ -53,7 +53,8 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
             }
 
             // @ts-ignore
-            const isElectron = window.process?.versions?.electron || (window.require && window.require('electron'));
+            const isElectron = !!(window.process?.versions?.electron || (window.require && window.require('electron')));
+
             if (isElectron) {
                 // @ts-ignore
                 const ipc = (window as any).ipcRenderer || (window.require && window.require('electron').ipcRenderer);
@@ -61,6 +62,12 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
                     ipc.send('simulate-input', data);
                 }
             } else {
+                // Bridge to Browser Extension via CustomEvent
+                // @ts-ignore
+                if (window.__DISPLAYEXTENDED_EXTENSION_AVAILABLE__ && window.__DISPLAYEXTENDED_NATIVE_HOST_AVAILABLE__) {
+                    window.dispatchEvent(new CustomEvent('displayextended-simulate-input', { detail: data }));
+                }
+
                 if (data?.type === 'mousemove') {
                     setRemoteCursorPos({ x: data.x, y: data.y });
                 } else if (data?.type === 'mousedown') {

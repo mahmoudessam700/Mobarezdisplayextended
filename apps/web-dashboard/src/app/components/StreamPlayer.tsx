@@ -10,9 +10,10 @@ interface StreamPlayerProps {
     onMouseMove?: (e: React.MouseEvent<HTMLVideoElement>) => void;
     onMouseDown?: (e: React.MouseEvent<HTMLVideoElement>) => void;
     onMouseUp?: (e: React.MouseEvent<HTMLVideoElement>) => void;
+    onWheel?: (e: React.WheelEvent<HTMLVideoElement>) => void;
 }
 
-export function StreamPlayer({ stream, deviceName, onClose, onMouseMove, onMouseDown, onMouseUp }: StreamPlayerProps) {
+export function StreamPlayer({ stream, deviceName, onClose, onMouseMove, onMouseDown, onMouseUp, onWheel }: StreamPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
@@ -40,6 +41,7 @@ export function StreamPlayer({ stream, deviceName, onClose, onMouseMove, onMouse
                 onMouseMove={onMouseMove}
                 onMouseDown={onMouseDown}
                 onMouseUp={onMouseUp}
+                onWheel={onWheel}
             />
 
             {/* Overlay Controls — pointer-events-none so mouse events reach the video */}

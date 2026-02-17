@@ -5,6 +5,7 @@ import { ConnectionModal, ConnectionSettings } from '../../components/Connection
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePeer } from '../../hooks/usePeer';
 import { useWebRTC } from '../../hooks/useWebRTC';
+import { useExtension } from '../../hooks/useExtension';
 import { StreamPlayer } from '../../components/StreamPlayer';
 import { Button } from '../../components/ui/button';
 import { PairingModal } from '../../components/PairingModal';
@@ -25,6 +26,7 @@ export function Devices() {
   const { t } = useTranslation();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const { peer, connected } = usePeer();
+  const { extensionAvailable, nativeHostAvailable } = useExtension();
   const { startScreenShare, stopStreaming, isStreaming, remoteCursorPos, remoteClickEffect, remoteLastKey } = useWebRTC({
     peer,
     onRemoteStream: (stream) => setRemoteStream(stream)
@@ -229,6 +231,16 @@ export function Devices() {
               <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
               <span className="text-sm font-semibold text-blue-400">Remote Control Active</span>
             </div>
+
+            {(extensionAvailable || nativeHostAvailable) && (
+              <div className="mb-2 px-2 py-1 rounded bg-slate-800 flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${nativeHostAvailable ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
+                <span className="text-[10px] text-slate-300 uppercase tracking-tighter font-bold">
+                  Extension: {nativeHostAvailable ? 'Native Ready' : 'In Browser'}
+                </span>
+              </div>
+            )}
+
             <div className="text-xs text-slate-400 space-y-1 font-mono">
               <div>Cursor: ({Math.round(remoteCursorPos.x * 100)}%, {Math.round(remoteCursorPos.y * 100)}%)</div>
               <div>Clicks: {remoteClickEffect}</div>
