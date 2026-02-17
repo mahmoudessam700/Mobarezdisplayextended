@@ -1,0 +1,42 @@
+{
+    "manifest_version": 3,
+    "name": "DisplayExtended Remote Control",
+    "version": "1.0.0",
+    "description": "Enable remote control functionality for DisplayExtended application",
+    "permissions": [
+        "nativeMessaging",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "http://localhost:5173/*",
+        "https://displayextend.mm-codes.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://localhost:5173/*",
+                "https://displayextend.mm-codes.com/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_end"
+        }
+    ],
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    }
+}

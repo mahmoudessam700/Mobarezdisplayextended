@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePeer } from '../../hooks/usePeer';
 import { useWebRTC } from '../../hooks/useWebRTC';
+import { useExtension } from '../../hooks/useExtension';
 import { StreamPlayer } from '../../components/StreamPlayer';
-import { Monitor, Wifi, Maximize2, RefreshCw, Settings, MousePointer } from 'lucide-react';
+import { Monitor, Wifi, Maximize2, RefreshCw, Settings, MousePointer, Download } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 
@@ -24,6 +25,7 @@ export function DisplayPage() {
         peer,
         onRemoteStream: (stream) => setRemoteStream(stream)
     });
+    const { extensionAvailable, nativeHostAvailable, canControl, simulateInput } = useExtension();
 
     const lastMouseSendRef = useRef(0);
     const containerRef = useRef<HTMLDivElement>(null);

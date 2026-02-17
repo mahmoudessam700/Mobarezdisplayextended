@@ -21,6 +21,7 @@ import { Terms } from './pages/Terms';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { DisplayPage } from './pages/display/DisplayPage';
+import { ExtendedDisplayPage } from './pages/extend/ExtendedDisplayPage';
 import { NotFound } from './pages/NotFound';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -61,6 +62,11 @@ export const router = createBrowserRouter([
   {
     path: '/display',
     Component: DisplayPage,
+    ErrorBoundary: ErrorBoundary,
+  },
+  {
+    path: '/extend/:code',
+    Component: ExtendedDisplayPage,
     ErrorBoundary: ErrorBoundary,
   },
   {

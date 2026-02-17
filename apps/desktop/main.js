@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 const os = require('os');
+const { exec, spawn } = require('child_process');
 
 let virtualDisplayProcess = null;
 
@@ -48,10 +49,8 @@ function createWindow() {
         mainWindow.webContents.openDevTools();
     }
 
-    // Remote Input Simulation
-    const { screen } = require('electron');
-    const { exec, spawn } = require('child_process');
-    const fs = require('fs');
+    // Remote Input Simulation using robotjs (cross-platform)
+    const robot = require('robotjs');
 
     // Track last known mouse position for click events
     let lastMouseX = 0;
@@ -59,102 +58,75 @@ function createWindow() {
 
     ipcMain.on('simulate-input', (event, data) => {
         console.log('[ELECTRON-IPC] Received simulate-input:', data.type);
-        if (process.platform !== 'darwin') {
-            console.warn('[ELECTRON-IPC] Input simulation only supported on macOS');
-            return;
-        }
 
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { width, height } = primaryDisplay.size;
+        try {
+            const screenSize = robot.getScreenSize();
+            const { width, height } = screenSize;
 
-        if (data.type === 'mousemove') {
-            const absX = Math.round(data.x * width);
-            const absY = Math.round(data.y * height);
-            lastMouseX = absX;
-            lastMouseY = absY;
-            // Use CGEvent via JXA (JavaScript for Automation) — works on modern macOS
-            const jxaScript = `
-                ObjC.import('CoreGraphics');
-                var point = $.CGPointMake(${absX}, ${absY});
-                var moveEvent = $.CGEventCreateMouseEvent(null, $.kCGEventMouseMoved, point, 0);
-                $.CGEventPost($.kCGHIDEventTap, moveEvent);
-            `;
-            exec(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''")}'`, (err) => {
-                if (err) console.error('[ELECTRON-IPC] Mouse move error:', err.message);
-            });
-        } else if (data.type === 'mousedown') {
-            const absX = data.x !== undefined ? Math.round(data.x * width) : lastMouseX;
-            const absY = data.y !== undefined ? Math.round(data.y * height) : lastMouseY;
-            console.log(`[ELECTRON-IPC] clicking at: ${absX}, ${absY}`);
-            const jxaScript = `
-                ObjC.import('CoreGraphics');
-                var point = $.CGPointMake(${absX}, ${absY});
-                var downEvent = $.CGEventCreateMouseEvent(null, $.kCGEventLeftMouseDown, point, 0);
-                $.CGEventPost($.kCGHIDEventTap, downEvent);
-            `;
-            exec(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''")}'`, (err) => {
-                if (err) console.error('[ELECTRON-IPC] Mouse down error:', err.message);
-            });
-        } else if (data.type === 'mouseup') {
-            const absX = data.x !== undefined ? Math.round(data.x * width) : lastMouseX;
-            const absY = data.y !== undefined ? Math.round(data.y * height) : lastMouseY;
-            const jxaScript = `
-                ObjC.import('CoreGraphics');
-                var point = $.CGPointMake(${absX}, ${absY});
-                var upEvent = $.CGEventCreateMouseEvent(null, $.kCGEventLeftMouseUp, point, 0);
-                $.CGEventPost($.kCGHIDEventTap, upEvent);
-            `;
-            exec(`osascript -l JavaScript -e '${jxaScript.replace(/'/g, "'\\''")}'`, (err) => {
-                if (err) console.error('[ELECTRON-IPC] Mouse up error:', err.message);
-            });
-        } else if (data.type === 'keydown') {
-            console.log('[ELECTRON-IPC] keydown:', data.key);
-            const key = data.key;
-            const escapedKey = key.replace(/"/g, '\\"');
-            if (key.length === 1) {
-                // Regular character keystroke via AppleScript (this works fine)
-                exec(`osascript -e 'tell application "System Events" to keystroke "${escapedKey}"'`, (err) => {
-                    if (err) console.error('[ELECTRON-IPC] Keystroke error:', err.message);
-                });
-            } else {
-                // Special keys using key codes
-                const keyCodeMap = {
-                    'Enter': 36,
-                    'Return': 36,
-                    'Escape': 53,
-                    'Tab': 48,
-                    'Backspace': 51,
-                    'Delete': 117,
-                    'ArrowUp': 126,
-                    'ArrowDown': 125,
-                    'ArrowLeft': 123,
-                    'ArrowRight': 124,
-                    'Space': 49,
-                    ' ': 49,
-                    'Home': 115,
-                    'End': 119,
-                    'PageUp': 116,
-                    'PageDown': 121,
-                    'F1': 122, 'F2': 120, 'F3': 99, 'F4': 118,
-                    'F5': 96, 'F6': 97, 'F7': 98, 'F8': 100,
-                    'F9': 101, 'F10': 109, 'F11': 103, 'F12': 111,
+            if (data.type === 'mousemove') {
+                const absX = Math.round(data.x * width);
+                const absY = Math.round(data.y * height);
+                lastMouseX = absX;
+                lastMouseY = absY;
+                robot.moveMouse(absX, absY);
+            } else if (data.type === 'mousedown') {
+                const absX = data.x !== undefined ? Math.round(data.x * width) : lastMouseX;
+                const absY = data.y !== undefined ? Math.round(data.y * height) : lastMouseY;
+                console.log(`[ELECTRON-IPC] clicking at: ${absX}, ${absY}`);
+                robot.moveMouse(absX, absY);
+                robot.mouseToggle('down');
+            } else if (data.type === 'mouseup') {
+                const absX = data.x !== undefined ? Math.round(data.x * width) : lastMouseX;
+                const absY = data.y !== undefined ? Math.round(data.y * height) : lastMouseY;
+                robot.moveMouse(absX, absY);
+                robot.mouseToggle('up');
+            } else if (data.type === 'keydown') {
+                console.log('[ELECTRON-IPC] keydown:', data.key);
+                const key = data.key;
+
+                // Build modifier array for robotjs
+                const modifiers = [];
+                if (data.modifiers?.shift) modifiers.push('shift');
+                if (data.modifiers?.ctrl || data.modifiers?.control) modifiers.push('control');
+                if (data.modifiers?.alt) modifiers.push('alt');
+                if (data.modifiers?.meta) modifiers.push('command');
+
+                // Map special keys to robotjs key names
+                const keyMap = {
+                    'Enter': 'enter',
+                    'Return': 'enter',
+                    'Escape': 'escape',
+                    'Tab': 'tab',
+                    'Backspace': 'backspace',
+                    'Delete': 'delete',
+                    'ArrowUp': 'up',
+                    'ArrowDown': 'down',
+                    'ArrowLeft': 'left',
+                    'ArrowRight': 'right',
+                    'Space': 'space',
+                    ' ': 'space',
+                    'Home': 'home',
+                    'End': 'end',
+                    'PageUp': 'pageup',
+                    'PageDown': 'pagedown',
+                    'F1': 'f1', 'F2': 'f2', 'F3': 'f3', 'F4': 'f4',
+                    'F5': 'f5', 'F6': 'f6', 'F7': 'f7', 'F8': 'f8',
+                    'F9': 'f9', 'F10': 'f10', 'F11': 'f11', 'F12': 'f12',
                 };
-                const keyCode = keyCodeMap[key];
-                if (keyCode !== undefined) {
-                    // Build modifier flags
-                    let modifierParts = [];
-                    if (data.modifiers?.shift) modifierParts.push('shift down');
-                    if (data.modifiers?.ctrl) modifierParts.push('control down');
-                    if (data.modifiers?.alt) modifierParts.push('option down');
-                    if (data.modifiers?.meta) modifierParts.push('command down');
-                    const usingClause = modifierParts.length > 0 ? ` using {${modifierParts.join(', ')}}` : '';
-                    exec(`osascript -e 'tell application "System Events" to key code ${keyCode}${usingClause}'`, (err) => {
-                        if (err) console.error('[ELECTRON-IPC] Key code error:', err.message);
-                    });
+
+                const robotKey = keyMap[key] || key.toLowerCase();
+
+                if (modifiers.length > 0) {
+                    robot.keyTap(robotKey, modifiers);
+                } else if (key.length === 1) {
+                    // For single characters, use typeString for better compatibility
+                    robot.typeString(key);
                 } else {
-                    console.warn('[ELECTRON-IPC] Unknown special key:', key);
+                    robot.keyTap(robotKey);
                 }
             }
+        } catch (err) {
+            console.error('[ELECTRON-IPC] Input simulation error:', err.message);
         }
     });
 
