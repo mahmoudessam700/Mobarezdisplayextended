@@ -12,8 +12,10 @@ const DATA_CONNECT_OPTIONS = {
     serialization: 'json' as const,
 };
 
-const DATA_RETRY_INTERVAL = 3000; // Retry data connection every 3s
+const DATA_RETRY_INTERVAL = 4000; // Retry data connection every 4s
 const DATA_MAX_RETRIES = 5;
+
+type DataChannelState = 'idle' | 'connecting' | 'open' | 'error';
 
 export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOptions) {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -29,8 +31,8 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
     const onRemoteStreamRef = useRef(onRemoteStream);
     const dataRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const dataRetryCount = useRef(0);
-    // Track the remote peer ID for retry logic
     const remotePeerId = useRef<string | null>(null);
+    const dcState = useRef<DataChannelState>('idle');
 
     // Keep refs up to date
     useEffect(() => {
@@ -44,9 +46,8 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
     useEffect(() => {
         const handleRemoteInput = (e: any) => {
             const data = e.detail;
-            console.log('[WEBRTC-BRIDGE] Received remote input:', data?.type);
+            if (!data) return;
 
-            // Notify callback if provided
             if (onRemoteInputRef.current) {
                 onRemoteInputRef.current(data);
             }
@@ -58,11 +59,8 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
                 const ipc = (window as any).ipcRenderer || (window.require && window.require('electron').ipcRenderer);
                 if (ipc) {
                     ipc.send('simulate-input', data);
-                } else {
-                    console.warn('[WEBRTC-BRIDGE] IPC not found even though isElectron is true');
                 }
             } else {
-                // Web-only mode: track remote cursor position for visual overlay
                 if (data?.type === 'mousemove') {
                     setRemoteCursorPos({ x: data.x, y: data.y });
                 } else if (data?.type === 'mousedown') {
@@ -76,7 +74,6 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
                     }
                 } else if (data?.type === 'keydown') {
                     setRemoteLastKey(data.key || data.code || 'key');
-                    // Auto-clear after 1.5s
                     setTimeout(() => setRemoteLastKey(null), 1500);
                 }
             }
@@ -86,91 +83,133 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
         return () => window.removeEventListener('remote-input', handleRemoteInput);
     }, []);
 
-    const setupDataConnection = useCallback((conn: DataConnection) => {
-        console.log('[PEER] Setting up data connection, label:', conn.label, 'serialization:', conn.serialization);
-
-        conn.on('open', () => {
-            console.log('[PEER] ✅ Data Connection OPEN — channel ready for input');
-            setDataChannelReady(true);
-            // Clear retry timer on success
-            if (dataRetryTimer.current) {
-                clearTimeout(dataRetryTimer.current);
-                dataRetryTimer.current = null;
-            }
-            dataRetryCount.current = 0;
-        });
-        conn.on('data', (data: any) => {
-            console.log('[PEER-DATA] Received:', data);
-            if (data.type === 'input') {
-                console.log('[PEER-DATA] Dispatching remote-input event:', data.payload?.type);
-                window.dispatchEvent(new CustomEvent('remote-input', { detail: data.payload }));
-            }
-        });
-        conn.on('close', () => {
-            console.log('[PEER] Data Connection Closed');
-            setDataChannelReady(false);
-        });
-        conn.on('error', (err: any) => {
-            console.error('[PEER] ❌ Data Connection Error:', err);
-            setDataChannelReady(false);
-        });
-        dataConnection.current = conn;
-        // If the connection is already open (e.g. incoming connection), mark as ready
-        if (conn.open) {
-            console.log('[PEER] Data connection already open on setup');
-            setDataChannelReady(true);
-            if (dataRetryTimer.current) {
-                clearTimeout(dataRetryTimer.current);
-                dataRetryTimer.current = null;
-            }
-            dataRetryCount.current = 0;
+    // Clear retry timer helper
+    const clearRetryTimer = useCallback(() => {
+        if (dataRetryTimer.current) {
+            clearTimeout(dataRetryTimer.current);
+            dataRetryTimer.current = null;
         }
     }, []);
+
+    const setupDataConnection = useCallback((conn: DataConnection) => {
+        // Log connection details for debugging
+        console.log(`[WEBRTC] 🧩 Attempting to setup data channel with: ${conn.peer} (label: ${conn.label})`);
+
+        // Check for existing state to prevent concurrent connection attempts or overwrites
+        if (dcState.current === 'open' && dataConnection.current?.peer === conn.peer) {
+            console.log('[WEBRTC] ⏭️ Already have an OPEN data connection to this peer, ignored incoming.');
+            conn.close();
+            return;
+        }
+
+        // If we are already connecting to this peer, don't start another one
+        if (dcState.current === 'connecting' && dataConnection.current?.peer === conn.peer && dataConnection.current !== conn) {
+            console.log('[WEBRTC] ⏭️ Already have a PENDING connection for this peer, ignored incoming.');
+            conn.close();
+            return;
+        }
+
+        dcState.current = 'connecting';
+        dataConnection.current = conn;
+
+        conn.on('open', () => {
+            console.log(`[WEBRTC] ✅ Data Channel OPENED with: ${conn.peer}`);
+            dcState.current = 'open';
+            setDataChannelReady(true);
+            clearRetryTimer();
+            dataRetryCount.current = 0;
+
+            // Send a ping to verify bidirectional life
+            conn.send({ type: 'handshake', status: 'ready' });
+        });
+
+        conn.on('data', (data: any) => {
+            if (data.type === 'input') {
+                window.dispatchEvent(new CustomEvent('remote-input', { detail: data.payload }));
+            } else if (data.type === 'handshake') {
+                console.log(`[WEBRTC] 🤝 Handshake from ${conn.peer}:`, data.status);
+            }
+        });
+
+        conn.on('close', () => {
+            console.log(`[WEBRTC] 🔴 Data Channel CLOSED with: ${conn.peer}`);
+            if (dataConnection.current === conn) {
+                dcState.current = 'idle';
+                dataConnection.current = null;
+                setDataChannelReady(false);
+            }
+        });
+
+        conn.on('error', (err: any) => {
+            console.error(`[WEBRTC] ❌ Data Channel ERROR with ${conn.peer}:`, err);
+            if (dataConnection.current === conn) {
+                dcState.current = 'error';
+                setDataChannelReady(false);
+                // We'll let the retry logic (if active) handle it or go back to idle
+                setTimeout(() => { if (dcState.current === 'error') dcState.current = 'idle'; }, 1000);
+            }
+        });
+
+        // Handle case where some PeerJS implementations fire 'open' immediately or if already open
+        if (conn.open) {
+            console.log('[WEBRTC] ✅ Connection already open at setup time');
+            dcState.current = 'open';
+            setDataChannelReady(true);
+            clearRetryTimer();
+        }
+    }, [clearRetryTimer]);
 
     // Retry logic for data connection
     const tryDataConnect = useCallback((targetId: string) => {
         if (!peer || !peer.open) {
-            console.warn('[PEER] Cannot create data connection — peer not open');
-            return;
-        }
-        if (dataConnection.current?.open) {
-            console.log('[PEER] Data connection already open, skipping connect');
+            console.warn('[WEBRTC] ⚠️ Peer not ready to connect data channel');
             return;
         }
 
+        if (dcState.current === 'open') return;
+
+        // If a connection attempt is hanging, reset it after a timeout
+        if (dcState.current === 'connecting') {
+            console.log('[WEBRTC] 🕒 Connection currently negotiating, waiting...');
+            return; // Let the existing timer or events handle it
+        }
+
         dataRetryCount.current += 1;
-        console.log(`[PEER] 🔄 Attempting data connection to ${targetId} (attempt ${dataRetryCount.current}/${DATA_MAX_RETRIES})`);
+        console.log(`[WEBRTC] 🔄 Data channel attempt ${dataRetryCount.current}/${DATA_MAX_RETRIES} to ${targetId}`);
 
         try {
             const conn = peer.connect(targetId, DATA_CONNECT_OPTIONS);
             setupDataConnection(conn);
 
-            // Schedule retry if not connected
-            if (dataRetryCount.current < DATA_MAX_RETRIES) {
-                dataRetryTimer.current = setTimeout(() => {
-                    if (!dataConnection.current?.open) {
-                        console.log('[PEER] ⏰ Data connection retry triggered');
+            // Set a deadline for this specific attempt
+            dataRetryTimer.current = setTimeout(() => {
+                if (dcState.current !== 'open') {
+                    console.log(`[WEBRTC] ⏰ Attempt ${dataRetryCount.current} timed out.`);
+                    if (dataRetryCount.current < DATA_MAX_RETRIES) {
+                        dcState.current = 'idle';
                         tryDataConnect(targetId);
+                    } else {
+                        console.error('[WEBRTC] ☢️ Max data channel retries reached');
+                        dcState.current = 'idle';
                     }
-                }, DATA_RETRY_INTERVAL);
-            } else {
-                console.warn(`[PEER] ⚠️ Max data connection retries (${DATA_MAX_RETRIES}) reached for ${targetId}`);
-            }
+                }
+            }, DATA_RETRY_INTERVAL);
         } catch (err) {
-            console.error('[PEER] Error creating data connection:', err);
+            console.error('[WEBRTC] 💣 Exception during connect:', err);
+            dcState.current = 'idle';
         }
     }, [peer, setupDataConnection]);
 
     const startScreenShare = useCallback(async (targetId: string) => {
         if (!peer) return null;
         try {
+            console.log('[WEBRTC] 🚀 Starting screen share to:', targetId);
             let stream: MediaStream;
 
             // @ts-ignore
             const isElectron = window.process?.versions?.electron || (window.require && window.require('electron'));
 
             if (isElectron) {
-                console.log('Detected Electron, using native capture...');
                 // @ts-ignore
                 const ipc = (window as any).ipcRenderer || (window.require && window.require('electron').ipcRenderer);
                 const sources = await ipc.invoke('get-sources');
@@ -207,100 +246,113 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
 
             // Establish data connection for remote control (with retries)
             dataRetryCount.current = 0;
+            dcState.current = 'idle';
             tryDataConnect(targetId);
 
             // Establish media call
+            console.log('[WEBRTC] 📞 Calling remote peer for media...');
             const call = peer.call(targetId, stream);
             mediaConnection.current = call;
 
+            call.on('error', (err) => {
+                console.error('[WEBRTC] ❌ Media Call Error:', err);
+            });
+
             return stream;
         } catch (error) {
-            console.error('Error starting screen share:', error);
+            console.error('[WEBRTC] ❌ Error starting screen share:', error);
+            setIsStreaming(false);
             return null;
         }
     }, [peer, tryDataConnect]);
 
     const stopStreaming = useCallback(() => {
+        console.log('[WEBRTC] 🛑 Stopping stream and closing connections');
         localStream?.getTracks().forEach(track => track.stop());
         setLocalStream(null);
         setIsStreaming(false);
+
         dataConnection.current?.close();
         dataConnection.current = null;
+        dcState.current = 'idle';
         setDataChannelReady(false);
+
         mediaConnection.current?.close();
         mediaConnection.current = null;
+
         remotePeerId.current = null;
-        if (dataRetryTimer.current) {
-            clearTimeout(dataRetryTimer.current);
-            dataRetryTimer.current = null;
-        }
+        clearRetryTimer();
         dataRetryCount.current = 0;
-    }, [localStream]);
+    }, [localStream, clearRetryTimer]);
 
     const sendInputData = useCallback((payload: any) => {
         if (dataConnection.current && dataConnection.current.open) {
             dataConnection.current.send({ type: 'input', payload });
         } else {
-            console.warn('[PEER-DATA] Cannot send, connection not open. State:', {
-                exists: !!dataConnection.current,
-                open: dataConnection.current?.open
-            });
+            // Only warn occasionally or if we think it should be open
+            if (dcState.current === 'open') {
+                console.warn('[WEBRTC] ⚠️ Data channel says open but send failed');
+            }
         }
     }, []);
 
     useEffect(() => {
         if (!peer) return;
 
-        // Handle incoming data connections (Remote Control)
-        peer.on('connection', (conn) => {
-            console.log('[PEER] 📥 Incoming data connection from:', conn.peer, 'serialization:', conn.serialization);
+        // Handle incoming data connections (e.g. if the receiver connects back)
+        const handleConnection = (conn: DataConnection) => {
+            console.log(`[WEBRTC] 📥 Incoming data connection request from: ${conn.peer}`);
+
+            // Priority management: if we are already connected, ignore new one
+            if (dcState.current === 'open') {
+                console.log('[WEBRTC] ⏭️ Already have an active connection, rejecting incoming.');
+                conn.close();
+                return;
+            }
+
+            // If we are currently trying to connect, we might want to "yield" to the incoming one
+            // to avoid race conditions (glare). For simplicity, we'll accept incoming if idle or connecting.
+            clearRetryTimer();
             setupDataConnection(conn);
-        });
+        };
 
-        // Handle incoming media calls (Display receiver)
-        peer.on('call', (call) => {
-            console.log('[PEER] 📞 Incoming call from:', call.peer);
+        // Handle incoming media calls (Display receiver side)
+        const handleCall = (call: MediaConnection) => {
+            console.log(`[WEBRTC] 📞 Receiving call from: ${call.peer}`);
 
-            // For the display, we automatically answer (no audio/video back)
             call.answer();
-
-            call.on('stream', (remoteStream) => {
-                console.log('[PEER] 🎥 Received remote stream');
-                onRemoteStreamRef.current(remoteStream);
-            });
-
             mediaConnection.current = call;
             remotePeerId.current = call.peer;
 
-            // Proactively create a data connection back to the caller.
-            // PeerJS data connections are separate WebRTC connections from media calls.
-            // The HOST's data connection may fail due to ICE/NAT issues, so
-            // we also try from the DISPLAY side with retries.
-            if (!dataConnection.current?.open) {
-                console.log('[PEER] 🔗 Display creating data connection back to HOST:', call.peer);
-                dataRetryCount.current = 0;
-                tryDataConnect(call.peer);
-            }
-        });
+            call.on('stream', (remoteStream) => {
+                console.log('[WEBRTC] 🎥 Remote stream received');
+                onRemoteStreamRef.current(remoteStream);
+            });
+
+            call.on('close', () => {
+                console.log('[WEBRTC] 📞 Media call closed');
+                onRemoteStreamRef.current(new MediaStream()); // Clear stream
+            });
+
+            // Wait a short moment then try to establish data channel from our side 
+            // if the host hasn't done it yet.
+            setTimeout(() => {
+                if (dcState.current === 'idle') {
+                    console.log('[WEBRTC] 🔗 Auto-initiating data connection back to host');
+                    tryDataConnect(call.peer);
+                }
+            }, 1500);
+        };
+
+        peer.on('connection', handleConnection);
+        peer.on('call', handleCall);
 
         return () => {
-            peer.off('connection');
-            peer.off('call');
-            if (dataRetryTimer.current) {
-                clearTimeout(dataRetryTimer.current);
-                dataRetryTimer.current = null;
-            }
+            peer.off('connection', handleConnection);
+            peer.off('call', handleCall);
+            clearRetryTimer();
         };
-    }, [peer, setupDataConnection, tryDataConnect]);
-
-    // Cleanup retry timer on unmount
-    useEffect(() => {
-        return () => {
-            if (dataRetryTimer.current) {
-                clearTimeout(dataRetryTimer.current);
-            }
-        };
-    }, []);
+    }, [peer, setupDataConnection, tryDataConnect, clearRetryTimer]);
 
     return {
         startScreenShare,

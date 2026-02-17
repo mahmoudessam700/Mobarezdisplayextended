@@ -145,8 +145,11 @@ export function Devices() {
             <Button
               variant="outline"
               onClick={() => {
-                const target = pairedTargetId || 'broadcast';
-                toast.promise(startScreenShare(target), {
+                if (!pairedTargetId) {
+                  toast.error('Please connect with a pairing code first');
+                  return;
+                }
+                toast.promise(startScreenShare(pairedTargetId), {
                   loading: 'Preparing stream...',
                   success: 'Screen streaming active',
                   error: 'Sharing cancelled'
