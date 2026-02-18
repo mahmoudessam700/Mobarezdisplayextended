@@ -5,6 +5,9 @@
     "dev": "concurrently -n dashboard,electron -c green,magenta \"npm run dev:dashboard\" \"sleep 3 && npm run dev:desktop\"",
     "dev:dashboard": "npm run dev --workspace=@display-extended/web-dashboard",
     "dev:desktop": "npm run dev --workspace=@display-extended/desktop",
+    "agent": "npm run start --workspace=@displayextended/agent",
+    "install:agent": "npm install --workspace=@displayextended/agent && npm run install-service --workspace=@displayextended/agent",
+    "start:agent": "npm run start --workspace=@displayextended/agent",
     "build": "npm run build:dashboard",
     "build:dashboard": "npm run build --workspace=@display-extended/web-dashboard",
     "install:all": "npm install"

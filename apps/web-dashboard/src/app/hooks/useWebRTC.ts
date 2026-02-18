@@ -42,7 +42,7 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
         onRemoteStreamRef.current = onRemoteStream;
     }, [onRemoteStream]);
 
-    // Bridge remote-input events to Electron IPC or handle in-browser
+    // Bridge remote-input events to Electron IPC, Local Agent, or handle in-browser
     useEffect(() => {
         const handleRemoteInput = (e: any) => {
             const data = e.detail;
@@ -52,6 +52,8 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
                 onRemoteInputRef.current(data);
             }
 
+            // --- ROUTING LOGIC ---
+            // 1. Check if running in Electron
             // @ts-ignore
             const isElectron = !!(window.process?.versions?.electron || (window.require && window.require('electron')));
 
@@ -62,12 +64,17 @@ export function useWebRTC({ peer, onRemoteStream, onRemoteInput }: UseWebRTCOpti
                     ipc.send('simulate-input', data);
                 }
             } else {
+                // 2. Check if Local Agent is available (via window-level event or custom hook state bridge)
+                // We'll dispatch a custom event that the useAgent hook (or similar) can listen to 
+                // but for now, we'll try to use the extension bridge or fallback.
+
                 // Bridge to Browser Extension via CustomEvent
                 // @ts-ignore
                 if (window.__DISPLAYEXTENDED_EXTENSION_AVAILABLE__ && window.__DISPLAYEXTENDED_NATIVE_HOST_AVAILABLE__) {
                     window.dispatchEvent(new CustomEvent('displayextended-simulate-input', { detail: data }));
                 }
 
+                // UI Fallback (Visual feedback)
                 if (data?.type === 'mousemove') {
                     setRemoteCursorPos({ x: data.x, y: data.y });
                 } else if (data?.type === 'mousedown') {

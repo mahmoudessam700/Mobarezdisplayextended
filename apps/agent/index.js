@@ -185,6 +185,29 @@ Write-Host "Virtual display support on Windows requires IddSampleDriver or simil
     }
 }
 
+// ─── Diagnostics ─────────────────────────────────────────────────────────────
+
+function runDiagnostic() {
+    const results = {
+        platform: process.platform,
+        architecture: process.arch,
+        nodeVersion: process.version,
+        robotAvailable: !!robot,
+        virtualDisplaySupport: process.platform === 'darwin' || process.platform === 'linux',
+        screenSize: null,
+    };
+
+    if (robot) {
+        try {
+            results.screenSize = robot.getScreenSize();
+        } catch (e) {
+            results.robotError = e.message;
+        }
+    }
+
+    return results;
+}
+
 // ─── WebSocket Server ─────────────────────────────────────────────────────────
 
 const wss = new WebSocketServer({
@@ -209,6 +232,7 @@ wss.on('connection', (ws, req) => {
         version: AGENT_VERSION,
         platform: process.platform,
         robotAvailable: !!robot,
+        diagnostic: runDiagnostic(),
     }));
 
     ws.on('message', (raw) => {
@@ -227,6 +251,9 @@ wss.on('connection', (ws, req) => {
                 ws.send(JSON.stringify({ type: 'input-result', ...result }));
             }
 
+        } else if (message.type === 'run-diagnostic') {
+            ws.send(JSON.stringify({ type: 'diagnostic-result', results: runDiagnostic() }));
+
         } else if (message.type === 'virtual-display:toggle') {
             toggleVirtualDisplay(message.enabled, (result) => {
                 ws.send(JSON.stringify({ type: 'virtual-display:result', ...result }));
@@ -242,6 +269,7 @@ wss.on('connection', (ws, req) => {
                 platform: process.platform,
                 robotAvailable: !!robot,
                 virtualDisplayActive: !!virtualDisplayProcess,
+                diagnostic: runDiagnostic(),
             }));
         }
     });

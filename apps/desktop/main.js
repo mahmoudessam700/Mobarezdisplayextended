@@ -188,6 +188,25 @@ app.whenReady().then(() => {
         if (virtualDisplayProcess) {
             virtualDisplayProcess.kill();
         }
+        if (agentProcess) {
+            agentProcess.kill();
+        }
+    });
+
+    // --- AUTO-LAUNCH AGENT ---
+    // This allows the desktop app to provide the WebSocket agent 
+    // for all browsers and local dashboard tabs automatically.
+    const agentPath = path.join(__dirname, '..', 'agent', 'index.js');
+    console.log('[ELECTRON] Launching Agent from:', agentPath);
+
+    const agentProcess = spawn('node', [agentPath]);
+
+    agentProcess.stdout.on('data', (data) => {
+        console.log(`[AGENT-LOG] ${data}`);
+    });
+
+    agentProcess.stderr.on('data', (data) => {
+        console.error(`[AGENT-ERR] ${data}`);
     });
 });
 

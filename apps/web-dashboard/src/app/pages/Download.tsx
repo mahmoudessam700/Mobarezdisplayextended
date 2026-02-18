@@ -1,14 +1,28 @@
-import { Download as DownloadIcon, Monitor, Smartphone, Apple, Chrome } from 'lucide-react';
+import { useState } from 'react';
+import { Download as DownloadIcon, Monitor, Smartphone, Apple, Chrome, CheckCircle, AlertTriangle, Activity, Settings, RefreshCw } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Footer } from '../components/Footer';
 import { detectPlatform, getPlatformName, handleDownload } from '../utils/download';
+import { useAgent } from '../hooks/useAgent';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 
 export function Download() {
   const currentPlatform = detectPlatform();
   const platformName = getPlatformName(currentPlatform);
+  const { agentConnected, agentInfo, diagnosticResults, runDiagnostic, isChecking } = useAgent();
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
+
+  const handleRunDiagnostic = async () => {
+    setIsDiagnosing(true);
+    runDiagnostic();
+    setTimeout(() => {
+      setIsDiagnosing(false);
+      toast.success('Diagnostic check complete!');
+    }, 2000);
+  };
 
   const downloads = [
     {
@@ -73,7 +87,7 @@ export function Download() {
           <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto mb-8">
             Choose your platform and start extending your screen across all your devices
           </p>
-          
+
           {/* Quick Download */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -83,17 +97,101 @@ export function Download() {
             <Card className="p-8 max-w-md mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0">
               <h3 className="text-2xl font-bold mb-2">Recommended for {platformName}</h3>
               <p className="mb-6 opacity-90">Version 1.0.0 • Free Download</p>
-              <Button 
-                size="lg" 
-                variant="secondary" 
-                className="w-full text-lg"
+              <Button
+                size="lg"
+                variant="secondary"
+                className="w-full text-lg shadow-lg hover:scale-105 transition-transform"
                 onClick={handleDownload}
               >
                 <DownloadIcon className="w-5 h-5 mr-2" />
-                Download Now
+                Download Application
               </Button>
+              <p className="mt-4 text-xs opacity-75 text-center italic">
+                * Includes all features: Mirror, Remote Control, and Display Extend
+              </p>
             </Card>
           </motion.div>
+        </motion.div>
+
+        {/* PC Requirements Tester Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-24"
+        >
+          <Card className="max-w-4xl mx-auto p-8 border-slate-200 dark:border-slate-800 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              <div className="flex-1 space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Activity className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold">PC Requirements Tester</h2>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Once you have downloaded the application, this tester will verify if your PC is ready for full remote control and display extension.
+                </p>
+
+                {!agentConnected ? (
+                  <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2 text-amber-600 font-semibold">
+                      <AlertTriangle className="w-5 h-5" />
+                      <span>Agent Not Detected</span>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      To test your PC, please ensure you have downloaded and started the <strong>DisplayExtend Agent</strong>.
+                    </p>
+                    <div className="pt-2">
+                      <code className="text-[10px] bg-black/10 dark:bg-black/40 p-2 rounded block font-mono text-slate-500 break-all">
+                        npm run install:agent # One-click setup
+                      </code>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-600 font-semibold">
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Agent is Ready</span>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      Everything is connected! We can now test your hardware for remote control and virtual display support.
+                    </p>
+                    <Button
+                      onClick={handleRunDiagnostic}
+                      disabled={isDiagnosing}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      {isDiagnosing ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Settings className="w-4 h-4 mr-2" />}
+                      Run System Check
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full md:w-80 space-y-3">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400 px-1">Checklist</h4>
+
+                {[
+                  { label: 'OS Platform', value: diagnosticResults?.platform || 'Checking...', status: agentConnected ? 'success' : 'pending' },
+                  { label: 'Input Engine (robotjs)', value: diagnosticResults?.robotAvailable ? 'Installed' : 'Missing', status: diagnosticResults?.robotAvailable ? 'success' : (agentConnected ? 'error' : 'pending') },
+                  { label: 'Virtual Monitor Support', value: diagnosticResults?.virtualDisplaySupport ? 'Available' : 'Limited', status: diagnosticResults?.virtualDisplaySupport ? 'success' : (agentConnected ? 'warning' : 'pending') },
+                  { label: 'Resolution detection', value: diagnosticResults?.screenSize ? `${diagnosticResults.screenSize.width}x${diagnosticResults.screenSize.height}` : 'No access', status: diagnosticResults?.screenSize ? 'success' : 'pending' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50">
+                    <div className="text-xs font-medium">{item.label}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] opacity-75">{item.value}</span>
+                      {item.status === 'success' && <CheckCircle className="w-3 h-3 text-emerald-500" />}
+                      {item.status === 'error' && <AlertTriangle className="w-3 h-3 text-red-500" />}
+                      {item.status === 'pending' && <div className="w-2 h-2 rounded-full bg-slate-300 animate-pulse" />}
+                      {item.status === 'warning' && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
         </motion.div>
 
         {/* All Platforms */}
@@ -125,8 +223,8 @@ export function Download() {
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                     {download.requirements}
                   </p>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     variant={download.recommended ? 'default' : 'outline'}
                     onClick={handleDownload}
                   >

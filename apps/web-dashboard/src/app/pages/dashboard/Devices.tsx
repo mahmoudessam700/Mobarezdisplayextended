@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { Scan, Plus, Wifi, WifiOff, Monitor, RefreshCw } from 'lucide-react';
 import { DeviceCard, DeviceType, DeviceStatus } from '../../components/DeviceCard';
 import { ConnectionModal, ConnectionSettings } from '../../components/ConnectionModal';
@@ -6,6 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { usePeer } from '../../hooks/usePeer';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { useExtension } from '../../hooks/useExtension';
+import { useAgent } from '../../hooks/useAgent';
 import { StreamPlayer } from '../../components/StreamPlayer';
 import { Button } from '../../components/ui/button';
 import { PairingModal } from '../../components/PairingModal';
@@ -24,6 +26,7 @@ interface Device {
 
 export function Devices() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const { peer, connected } = usePeer();
   const { extensionAvailable, nativeHostAvailable } = useExtension();
@@ -85,11 +88,26 @@ export function Devices() {
     toast.success(`Disconnected from device`);
   };
 
+  // Agent Connection
+  const { agentConnected, agentInfo, toggleVirtualDisplay: toggleAgentDisplay } = useAgent();
+
   const handleToggleVirtualDisplay = async () => {
     setIsVirtualDisplayLoading(true);
     const newState = !virtualDisplayActive;
 
     try {
+      // 1. Try via Local Agent (Universal)
+      if (agentConnected) {
+        const success = toggleAgentDisplay(newState);
+        if (success) {
+          setVirtualDisplayActive(newState);
+          toast.success(newState ? 'Virtual monitor created via Agent!' : 'Virtual monitor removed via Agent.');
+          setIsVirtualDisplayLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback to Electron IPC (Desktop App)
       // @ts-ignore
       const isElectron = window.process?.versions?.electron || (window.require && window.require('electron'));
       if (isElectron) {
@@ -103,10 +121,10 @@ export function Devices() {
           toast.error(result.message || 'Failed to manage virtual monitor.');
         }
       } else {
-        toast.error('Native features are only available in the desktop app.');
+        toast.error('Local Agent not found. Please download it from the "Download" page for full control.');
       }
     } catch (e) {
-      console.error('IPC Invoke error:', e);
+      console.error('Display toggle error:', e);
       toast.error('System error occurred during virtual monitor setup.');
     } finally {
       setIsVirtualDisplayLoading(false);
@@ -219,36 +237,39 @@ export function Devices() {
         </motion.div>
       )}
 
-      {/* Remote Control Indicator — shows when host is streaming and remote user is controlling */}
-      {isStreaming && remoteCursorPos && (
+      {/* Agent Status Banner */}
+      {!isStreaming && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-6 right-6 z-50"
+          className={`p-4 rounded-2xl border flex items-center justify-between transition-colors ${agentConnected ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-slate-900 border-slate-800'
+            }`}
         >
-          <div className="bg-slate-900/95 border border-blue-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-sm min-w-[200px]">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-sm font-semibold text-blue-400">Remote Control Active</span>
+          <div className="flex items-center gap-4">
+            <div className={`p-2 rounded-xl ${agentConnected ? 'bg-emerald-500/10' : 'bg-slate-800'}`}>
+              <Monitor className={`w-5 h-5 ${agentConnected ? 'text-emerald-500' : 'text-slate-400'}`} />
             </div>
-
-            {(extensionAvailable || nativeHostAvailable) && (
-              <div className="mb-2 px-2 py-1 rounded bg-slate-800 flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${nativeHostAvailable ? 'bg-emerald-500' : 'bg-yellow-500'}`} />
-                <span className="text-[10px] text-slate-300 uppercase tracking-tighter font-bold">
-                  Extension: {nativeHostAvailable ? 'Native Ready' : 'In Browser'}
-                </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{agentConnected ? 'Local Agent Connected' : 'Local Agent Disconnected'}</span>
+                {agentConnected && (
+                  <Badge variant="outline" className="text-[10px] py-0 border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
+                    Universal Control Active
+                  </Badge>
+                )}
               </div>
-            )}
-
-            <div className="text-xs text-slate-400 space-y-1 font-mono">
-              <div>Cursor: ({Math.round(remoteCursorPos.x * 100)}%, {Math.round(remoteCursorPos.y * 100)}%)</div>
-              <div>Clicks: {remoteClickEffect}</div>
-              {remoteLastKey && (
-                <div className="mt-1 px-2 py-0.5 bg-slate-800 rounded text-blue-300 inline-block">⌨ {remoteLastKey}</div>
-              )}
+              <p className="text-sm text-slate-400">
+                {agentConnected
+                  ? `v${agentInfo?.version || '1.0.0'} running on ${agentInfo?.platform || 'native host'}`
+                  : 'Download the agent for full remote control and virtual display.'}
+              </p>
             </div>
           </div>
+          {!agentConnected && (
+            <Button variant="outline" onClick={() => navigate('/download')} size="sm" className="border-blue-500/30 text-blue-500 hover:bg-blue-500/10">
+              Download Agent
+            </Button>
+          )}
         </motion.div>
       )}
 
@@ -339,6 +360,7 @@ export function Devices() {
           </div>
         </motion.div>
       )}
+
       {selectedDevice && (
         <ConnectionModal open={showConnectionModal} onOpenChange={setShowConnectionModal} deviceName={selectedDevice.name} onConnect={handleConfirmConnection} />
       )}
