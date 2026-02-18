@@ -1,0 +1,14 @@
+{
+    "name": "@displayextended/agent",
+    "version": "1.0.0",
+    "description": "DisplayExtend local agent — enables remote control and virtual display from any browser",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "install-service": "node install.js"
+    },
+    "dependencies": {
+        "robotjs": "^0.6.0",
+        "ws": "^8.18.0"
+    }
+}
