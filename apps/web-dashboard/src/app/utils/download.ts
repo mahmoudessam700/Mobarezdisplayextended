@@ -21,20 +21,22 @@ export function detectPlatform(): Platform {
   if (/linux/.test(platform)) {
     return 'linux';
   }
-  
+
   return 'unknown';
 }
 
 export function getDownloadLink(platform: Platform): string {
+  // These are external links to the binaries. 
+  // For this project, we prioritize the Agent/Desktop app.
   const downloads = {
-    windows: 'https://download.displayextended.com/DisplayExtended-Setup-1.0.exe',
-    mac: 'https://download.displayextended.com/DisplayExtended-1.0.dmg',
-    linux: 'https://download.displayextended.com/DisplayExtended-1.0.AppImage',
+    windows: 'https://github.com/mahmoudessam700/Mobarezdisplayextended/releases/download/v1.0.0/DisplayExtended-Setup.exe',
+    mac: 'https://github.com/mahmoudessam700/Mobarezdisplayextended/releases/download/v1.0.0/DisplayExtended.dmg',
+    linux: 'https://github.com/mahmoudessam700/Mobarezdisplayextended/releases/download/v1.0.0/DisplayExtended.AppImage',
     android: 'https://play.google.com/store/apps/details?id=com.displayextended',
     ios: 'https://apps.apple.com/app/displayextended/id123456789',
     unknown: '/download',
   };
-  
+
   return downloads[platform];
 }
 
@@ -47,18 +49,21 @@ export function getPlatformName(platform: Platform): string {
     ios: 'iOS',
     unknown: 'Your Platform',
   };
-  
+
   return names[platform];
 }
 
 export function handleDownload() {
   const platform = detectPlatform();
   const platformName = getPlatformName(platform);
-  
+  const downloadUrl = getDownloadLink(platform);
+
   toast.success(`Starting download for ${platformName}`, {
     description: 'DisplayExtended v1.0 will begin downloading shortly',
   });
-  
-  // In a real app, this would trigger the actual download
-  // window.location.href = getDownloadLink(platform);
+
+  // Trigger the actual download
+  setTimeout(() => {
+    window.location.href = downloadUrl;
+  }, 1000);
 }
