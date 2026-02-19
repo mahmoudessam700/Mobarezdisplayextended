@@ -53,10 +53,29 @@ export function getPlatformName(platform: Platform): string {
   return names[platform];
 }
 
-export function handleDownload() {
+export async function handleDownload() {
   const platform = detectPlatform();
   const platformName = getPlatformName(platform);
   const downloadUrl = getDownloadLink(platform);
+
+  toast.info(`Preparing download for ${platformName}`, {
+    description: 'Verifying release availability...',
+  });
+
+  // Check if the link exists before redirecting (optional but helpful for devs)
+  try {
+    const response = await fetch(downloadUrl, { method: 'HEAD' });
+    if (response.status === 404 && downloadUrl.includes('github.com')) {
+      toast.error('Release Not Found', {
+        description: 'The v1.0.0 release has not been published to GitHub yet. Please check RELEASE_GUIDE.md.',
+        duration: 8000,
+      });
+      return;
+    }
+  } catch (e) {
+    // If CORS prevents HEAD, we'll just try to redirect anyway
+    console.warn('Could not verify download link availability:', e);
+  }
 
   toast.success(`Starting download for ${platformName}`, {
     description: 'DisplayExtended v1.0 will begin downloading shortly',
