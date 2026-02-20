@@ -1,5 +1,8 @@
 {
   "name": "display-extended-monorepo",
+  "version": "1.0.0",
+  "description": "Mobarez Display Extended",
+  "author": "Mobarez",
   "private": true,
   "scripts": {
     "dev": "concurrently -n dashboard,electron -c green,magenta \"npm run dev:dashboard\" \"sleep 3 && npm run dev:desktop\"",
@@ -10,6 +13,8 @@
     "start:agent": "npm run start --workspace=@displayextended/agent",
     "build": "npm run build:dashboard",
     "build:dashboard": "npm run build --workspace=@display-extended/web-dashboard",
+    "build:desktop:win": "npm run build:win --workspace=@display-extended/desktop",
+    "build:desktop:mac": "npm run build:mac --workspace=@display-extended/desktop",
     "install:all": "npm install"
   },
   "workspaces": [
