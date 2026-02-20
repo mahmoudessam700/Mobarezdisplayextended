@@ -50,7 +50,7 @@ function createWindow() {
     }
 
     // Remote Input Simulation using nut.js (cross-platform, native pre-builds)
-    // const { mouse, keyboard, Key, Point, screen: nutScreen, Button } = require('@nut-tree-fork/nut-js');
+    const { mouse, keyboard, Key, Point, screen: nutScreen, Button } = require('@nut-tree-fork/nut-js');
 
     // Remove delay for faster remote control
     nutScreen.config.resourceDirectory = process.cwd();
