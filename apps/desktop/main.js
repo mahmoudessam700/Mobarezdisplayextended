@@ -192,7 +192,35 @@ function createWindow() {
     });
 }
 
-app.whenReady().then(() => {
+const { systemPreferences } = require('electron');
+
+async function checkMacPermissions() {
+    if (process.platform !== 'darwin') return;
+
+    // 1. Check Screen Recording Permission
+    const hasScreenCapture = systemPreferences.getMediaAccessStatus('screen') === 'granted';
+    if (!hasScreenCapture) {
+        console.log('[ELECTRON] Requesting Screen Recording permission...');
+        // On macOS 10.15+, asking for sources automatically triggers the system prompt
+        // if the app doesn't have permission yet.
+        try {
+            await desktopCapturer.getSources({ types: ['screen'] });
+        } catch (e) {
+            console.log('[ELECTRON] Screen capture request error:', e);
+        }
+    }
+
+    // 2. Check Accessibility Permission (needed for nut.js remote control)
+    const hasAccessibility = systemPreferences.isTrustedAccessibilityClient(false);
+    if (!hasAccessibility) {
+        console.log('[ELECTRON] Requesting Accessibility permission...');
+        // Passing 'true' triggers the macOS system dialog asking the user to grant permission
+        systemPreferences.isTrustedAccessibilityClient(true);
+    }
+}
+
+app.whenReady().then(async () => {
+    await checkMacPermissions();
     createWindow();
 
     app.on('activate', () => {
