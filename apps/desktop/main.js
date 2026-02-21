@@ -2,9 +2,10 @@ const { app, BrowserWindow, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 const os = require('os');
-const { exec, spawn } = require('child_process');
+const { exec, spawn, fork } = require('child_process');
 
 let virtualDisplayProcess = null;
+let agentProcess = null;
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -18,6 +19,7 @@ function createWindow() {
     });
 
     // System info for registration
+    ipcMain.removeHandler('get-system-info');
     ipcMain.handle('get-system-info', () => {
         return {
             name: os.hostname(),
@@ -27,6 +29,7 @@ function createWindow() {
     });
 
     // Native Screen Capture sources
+    ipcMain.removeHandler('get-sources');
     ipcMain.handle('get-sources', async () => {
         const sources = await desktopCapturer.getSources({ types: ['window', 'screen'] });
         return sources.map(source => ({
@@ -60,6 +63,7 @@ function createWindow() {
     let lastMouseX = 0;
     let lastMouseY = 0;
 
+    ipcMain.removeAllListeners('simulate-input');
     ipcMain.on('simulate-input', async (event, data) => {
         console.log('[ELECTRON-IPC] Received simulate-input:', data.type);
 
@@ -136,6 +140,7 @@ function createWindow() {
         }
     });
 
+    ipcMain.removeHandler('virtual-display:toggle');
     ipcMain.handle('virtual-display:toggle', async (event, enabled) => {
         if (process.platform !== 'darwin') return { success: false, message: 'Only supported on macOS' };
 
@@ -205,7 +210,7 @@ app.whenReady().then(() => {
     const agentPath = path.join(__dirname, '..', 'agent', 'index.js');
     console.log('[ELECTRON] Launching Agent from:', agentPath);
 
-    const agentProcess = spawn('node', [agentPath]);
+    agentProcess = fork(agentPath);
 
     agentProcess.stdout.on('data', (data) => {
         console.log(`[AGENT-LOG] ${data}`);
