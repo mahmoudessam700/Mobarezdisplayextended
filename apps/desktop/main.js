@@ -11,12 +11,17 @@ function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
+        icon: path.join(__dirname, 'build', 'icon.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
         },
         title: "Mobarez DisplayExtended (Host)",
     });
+
+    if (process.platform === 'darwin') {
+        app.dock.setIcon(path.join(__dirname, 'build', 'icon.png'));
+    }
 
     // System info for registration
     ipcMain.removeHandler('get-system-info');
