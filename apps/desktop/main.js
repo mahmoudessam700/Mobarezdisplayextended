@@ -4,6 +4,9 @@ const isDev = require('electron-is-dev');
 const os = require('os');
 const { exec, spawn, fork } = require('child_process');
 
+// Disable proxy to prevent ERR_FAILED blank screen issues on macOS
+app.commandLine.appendSwitch('no-proxy-server');
+
 let virtualDisplayProcess = null;
 let agentProcess = null;
 
@@ -51,7 +54,21 @@ function createWindow() {
         : 'https://displayextend.mm-codes.com';
 
     console.log('[ELECTRON] Loading URL:', startUrl);
-    mainWindow.loadURL(startUrl);
+
+    // Add error handling instead of failing silently with a blank screen
+    mainWindow.loadURL(startUrl).catch(err => {
+        console.error('[ELECTRON] Failed to load URL:', err);
+        mainWindow.loadURL(`data:text/html;charset=utf-8,
+            <html>
+            <body style="font-family: sans-serif; padding: 2rem; background: #1a1a1a; color: #fff;">
+                <h2>Failed to load Application</h2>
+                <p>Target URL: <code>${startUrl}</code></p>
+                <p>Error: <code>${err.message}</code></p>
+                ${isDev ? '<p><strong>Tip:</strong> Ensure the web dashboard dev server is running (e.g., <code>npm run dev</code> on port 5173).</p>' : '<p>Check your internet connection.</p>'}
+            </body>
+            </html>
+        `);
+    });
 
     if (isDev) {
         mainWindow.webContents.openDevTools();
