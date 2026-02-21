@@ -127,7 +127,7 @@ export function Landing() {
             className="text-center"
           >
             <Badge className="mb-4 sm:mb-6 bg-blue-500">Version 1.0</Badge>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight text-blue-600 dark:text-blue-400">
               {t('heroTitle')}
               <br />
               {t('heroSubtitle')}

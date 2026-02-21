@@ -260,7 +260,7 @@ app.whenReady().then(async () => {
     const agentPath = path.join(__dirname, '..', 'agent', 'index.js');
     console.log('[ELECTRON] Launching Agent from:', agentPath);
 
-    agentProcess = fork(agentPath);
+    agentProcess = fork(agentPath, [], { stdio: 'pipe' });
 
     agentProcess.stdout.on('data', (data) => {
         console.log(`[AGENT-LOG] ${data}`);
